@@ -4,26 +4,8 @@
 //
 //  Version 0.51, September 2018, Michael "h4tt3n" Nissen
 //  Converted to JavaScript spring 2022
-//
-//  Controls:
-//  Demos                      :  F1 - F6
-//  Double / halve iterations  :  1 - 9
-//  Inc. / dec. iterations     :  I + up / down
-//  Inc. / dec. stiffness      :  s + up / down
-//  Inc. / dec. damping        :  D + up / down
-//  Inc. / dec. warmstart      :  W + up / down
-//  Warmstart on / off         :  Space bar
-//  Exit demo                  :  Escape key
-//
-//  TODO:
-//  Mouse interaction code overhaul
-//  
+//	
 //******************************************************************************* 
-
-
-//   Includes
-//import { Vector2 } from "./vector2.js";
-
 
 //   Global constants
 const DT                    = 1.0 / 100.0;                    //  timestep
@@ -35,7 +17,6 @@ const SCREEN_WID            = 1000;                          //  screen width
 const SCREEN_HGT            = 800;                           //  screen height
 const PICK_DISTANCE         = 256.0;                         //  mouse PIck distance
 const PICK_DISTANCE_SQUARED = Math.pow(PICK_DISTANCE, 2.0);  //  mouse pick distance squared
-
 
 //	classes
 class Vector2 {
