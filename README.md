@@ -1,4 +1,4 @@
-# matthias-mueller-challenge
+# Matthias Müller challenge
 Open repo containing submissions for the Mattias Müller PBD challenge
 
 # Description
