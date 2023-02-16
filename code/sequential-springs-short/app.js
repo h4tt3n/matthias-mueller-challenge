@@ -8,11 +8,10 @@
 //******************************************************************************* 
 
 //   Global constants
-const DT                    = 1.0 / 100.0;                    //  timestep
-const INV_DT                = 1.0 / DT;                      //  inverse timestep
-const GRAVITY               = 10.0;                           //  GRAVITY
-const DENSITY               = 0.01;                           //  ball density
-const PI                    = Math.PI;                       //  PI
+const DT      = 1.0 / 100.0;                    //  timestep
+const INV_DT  = 1.0 / DT;                      //  inverse timestep
+const GRAVITY = 9.82;                           //  GRAVITY
+const DENSITY = 0.1;                           //  ball density
 
 //	classes
 class Vector2 {
@@ -124,9 +123,9 @@ function demo1(){
 	DemoText = "The n-pendulum";
 	iterations = 50;
 	
-	var num_Particles       = 4;
-	var num_Springs         = num_Particles-1;
-	var SpringLength        = 150.0;
+	var num_Particles = 4;
+	var num_Springs = num_Particles-1;
+	var SpringLength = 150.0;
 	
 	//
 	clearParticles();
@@ -137,7 +136,7 @@ function demo1(){
 		var p = new Particle();
 		var mass = 1.0 + Math.random() * 1000.0;
 		p.inverseMass = i == 0 ? 0.0 : 1.0 / mass;
-		p.radius = Math.pow((3*mass)/(4*PI*DENSITY), (1/3));
+		p.radius = 8 + Math.pow((3*mass)/(4*Math.PI*DENSITY), (1/3));
 		var center = new Vector2( window.innerWidth/2, window.innerHeight/5 );
 		var position = new Vector2(i*SpringLength, 0);
 		p.position = center.add(position);	
@@ -171,7 +170,6 @@ function initiateSimulation(){
 	canvas.width = window.innerWidth - 20;
 	canvas.height = window.innerHeight - 20;
 	ctx = canvas.getContext("2d");
-	ctx.resetTransform();
 
 	demo1();
 
@@ -180,27 +178,13 @@ function initiateSimulation(){
 
 function updateScreen(){
 	// Clear screen
-	ctx.resetTransform();
 	ctx.fillStyle = "#000000";
 	ctx.fillRect(0, 0, canvas.width, canvas.height);
-	// Particles
-	ctx.fillStyle = "#FFFFFF";
 
-	for(var i = 0; i < particle.length; i++){
-		var p = particle[i]
-		var x = p.position.x;
-		var y = p.position.y;
-		ctx.setTransform(1, 0, 0, 1, x, y);
-		ctx.beginPath();
-		ctx.arc(0, 0, p.radius, 0, PI * 2);
-		ctx.fill();
-		ctx.closePath();
-	}
 	// Springs
-	ctx.lineWidth = 2.0;
-	ctx.strokeStyle = "#ffffff";
+	ctx.lineWidth = 8.0;
+	ctx.strokeStyle = "#404040";
 	ctx.lineJoin = "round";
-	ctx.setTransform(1, 0, 0, 1, 0.0, 0.0);
 
 	for(var i = 0; i < spring.length; i++){
 		var pSpring = spring[i]
@@ -212,6 +196,19 @@ function updateScreen(){
 		ctx.moveTo(xA, yA);
 		ctx.lineTo(xB, yB);
 		ctx.stroke();
+	}
+
+	// Particles
+	ctx.fillStyle = "#FF0000";
+
+	for(var i = 0; i < particle.length; i++){
+		var p = particle[i]
+		var x = p.position.x;
+		var y = p.position.y;
+		ctx.beginPath();
+		ctx.arc(x, y, p.radius, 0, Math.PI * 2);
+		ctx.fill();
+		ctx.closePath();
 	}
 }
 
