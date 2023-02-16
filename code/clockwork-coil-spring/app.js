@@ -451,12 +451,10 @@ function clearWarmstart(){
 function initiateSimulation(){
 
 	// canvas
-	//this.createScreen( SCREEN_WID, SCREEN_HGT );
 	canvas = document.querySelector("#gameCanvas");
-	//canvas.setAttribute('width', window.innerWidth);
-	//canvas.setAttribute('height', window.innerHeight);
-	canvas.setAttribute('width', SCREEN_WID);
-	canvas.setAttribute('height', SCREEN_HGT);
+	canvas.width = window.innerWidth - 20;
+	canvas.height = window.innerHeight - 20;
+	ctx = canvas.getContext("2d");
 
 	// context
 	ctx = canvas.getContext("2d");

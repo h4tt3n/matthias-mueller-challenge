@@ -11,7 +11,7 @@
 const DT      = 1.0 / 100.0;                    //  timestep
 const INV_DT  = 1.0 / DT;                      //  inverse timestep
 const GRAVITY = 9.82;                           //  GRAVITY
-const DENSITY = 0.1;                           //  ball density
+const DENSITY = 0.01;                           //  ball density
 
 //	classes
 class Vector2 {
@@ -121,7 +121,7 @@ initiateSimulation();
 function demo1(){
 
 	DemoText = "The n-pendulum";
-	iterations = 50;
+	iterations = 20;
 	
 	var num_Particles = 4;
 	var num_Springs = num_Particles-1;
@@ -134,7 +134,7 @@ function demo1(){
 	// create particles
 	for(var i = 0; i < num_Particles; i++){
 		var p = new Particle();
-		var mass = 1.0 + Math.random() * 1000.0;
+		var mass = 1.0 + Math.random() * 100.0;
 		p.inverseMass = i == 0 ? 0.0 : 1.0 / mass;
 		p.radius = 8 + Math.pow((3*mass)/(4*Math.PI*DENSITY), (1/3));
 		var center = new Vector2( window.innerWidth/2, window.innerHeight/5 );
@@ -154,6 +154,15 @@ function demo1(){
 		s.reducedMass = inverseMass > 0.0 ? 1.0 / inverseMass : 0.0;
 		spring.push(s);
 	}
+	
+	// Randomize position - stability test
+	// var displacement = Math.pow(1337, 42);
+
+	// for(var i = 1; i < num_Particles; i++){
+	// 	var p = particle[i];
+	// 	p.position.x = p.position.x + Math.random(displacement) - Math.random(displacement);
+	// 	p.position.y = p.position.x + Math.random(displacement) - Math.random(displacement);
+	// }
 }
 
 function clearParticles(){
