@@ -11,7 +11,7 @@
 const DT                    = 1.0 / 100.0;                    //  timestep
 const INV_DT                = 1.0 / DT;                      //  inverse timestep
 const GRAVITY               = 10.0;                           //  GRAVITY
-const DENSITY               = 0.5;                           //  ball density
+const DENSITY               = 0.01;                           //  ball density
 const PI                    = Math.PI;                       //  PI
 
 //	classes
@@ -30,7 +30,7 @@ class Vector2 {
         return new Vector2(this.x * s, this.y * s);
     }
     div(s){ 
-        return new Vector2(this.x / s, this.y / s );
+        return new Vector2(this.x/s, this.y/s);
     }
     abs() { 
         return new Vector2( Math.abs(this.x), Math.abs(this.y) ); 
@@ -44,18 +44,14 @@ class Vector2 {
         }
     }
     length() { 
-        return Math.sqrt(this.lengthSquared());
+        return Math.sqrt(this.x*this.x+this.y*this.y);
     }
     lengthSquared() { 
-        return this.dot(this);
+    	return this.x*this.x+this.y*this.y;
     }
     unit() { 
-        var length = this.length();
-        if(length === 0){
-            return new Vector2();
-        } else {
-            return new Vector2( this.x / length, this.y / length );
-        }
+        var length = Math.sqrt(this.x*this.x+this.y*this.y);
+        return length > 0 ? new Vector2(this.x/length, this.y/length) : new Vector2();
     }
 };
 
@@ -114,9 +110,7 @@ class Spring {
 var canvas = null;
 var ctx = null;
 var DemoText = "";
-
 var iterations = new Number();
-var warmstart = new Number();
 
 var particle = [];
 var spring = [];
@@ -127,15 +121,12 @@ initiateSimulation();
 // functions
 function demo1(){
 
-	DemoText   = "Mechanical wind-up clock spring"
-	iterations = 10
-	warmstart  = 1
+	DemoText = "The n-pendulum";
+	iterations = 50;
 	
 	var num_Particles       = 4;
-	var num_Springs         = 3;
-	var SpringLength        = 400.0;
-	var Angle               = 3/4 * 2 * PI;
-	var delta_angle         = 0.05 * 2 * PI;
+	var num_Springs         = num_Particles-1;
+	var SpringLength        = 150.0;
 	
 	//
 	clearParticles();
@@ -144,14 +135,12 @@ function demo1(){
 	// create particles
 	for(var i = 0; i < num_Particles; i++){
 		var p = new Particle();
-		var mass = 1.0 + Math.random() * 100.0;
-		p.inverseMass = i > num_Particles-2 ? 0.0 : 1.0 / mass;
-		p.radius = Math.pow((( mass / DENSITY ) / (4/3) * PI), 1/3); // TODO: Check this equation
-		var center = new Vector2( 500, 400 );
-		var position = new Vector2( Math.cos(Angle), Math.sin(Angle) ).mul(SpringLength);
+		var mass = 1.0 + Math.random() * 1000.0;
+		p.inverseMass = i == 0 ? 0.0 : 1.0 / mass;
+		p.radius = Math.pow((3*mass)/(4*PI*DENSITY), (1/3));
+		var center = new Vector2( window.innerWidth/2, window.innerHeight/5 );
+		var position = new Vector2(i*SpringLength, 0);
 		p.position = center.add(position);	
-		Angle += delta_angle;
-		SpringLength += 1;
 		particle.push(p);
 	}
 	
@@ -190,29 +179,23 @@ function initiateSimulation(){
 }
 
 function updateScreen(){
-
 	// Clear screen
 	ctx.resetTransform();
 	ctx.fillStyle = "#000000";
 	ctx.fillRect(0, 0, canvas.width, canvas.height);
-	
 	// Particles
 	ctx.fillStyle = "#FFFFFF";
 
 	for(var i = 0; i < particle.length; i++){
-
 		var p = particle[i]
-
 		var x = p.position.x;
 		var y = p.position.y;
 		ctx.setTransform(1, 0, 0, 1, x, y);
 		ctx.beginPath();
 		ctx.arc(0, 0, p.radius, 0, PI * 2);
-		//ctx.fillRect(-2, -2, 4, 4);
 		ctx.fill();
 		ctx.closePath();
 	}
-
 	// Springs
 	ctx.lineWidth = 2.0;
 	ctx.strokeStyle = "#ffffff";
@@ -220,9 +203,7 @@ function updateScreen(){
 	ctx.setTransform(1, 0, 0, 1, 0.0, 0.0);
 
 	for(var i = 0; i < spring.length; i++){
-
 		var pSpring = spring[i]
-
 		var xA = pSpring.particleA.position.x
 		var yA = pSpring.particleA.position.y
 		var xB = pSpring.particleB.position.x
@@ -235,41 +216,31 @@ function updateScreen(){
 }
 
 function runSimulation(){
-	
-	computeReusableData();
 	requestAnimationFrame( updateScreen );
-
+	computeReusableData();
 	for(var i = 0; i < iterations; i++){
-
 		applyCorrectiveLinearImpulse();
 	}
-
 	computeNewState();
 }
 
 function applyCorrectiveLinearImpulse(){
-	
 	for(var i = 0; i < spring.length; i++){
 		spring[i].computeCorrectiveImpulse();
 	}
-
 	for(var i = spring.length-1; i > 0; --i){
 		spring[i].computeCorrectiveImpulse();
 	}
 }
 
 function computeReusableData(){
-
 	for(var i = 0; i < spring.length; i++){
-
 		spring[i].computeReusableData();
 	}
 }
 
 function computeNewState(){
-
 	for(var i = 0; i < particle.length; i++){
-
 		particle[i].computeNewState();
 	}
 }

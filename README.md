@@ -11,7 +11,7 @@ In combination they outperform PBD with less calculations.
 
 The techniques also challenge some old "universal truths" in the world of game physics,
 most noticeable the idea that in order to get infinite spring stiffness you need an infinitely
-big stiffness coefficient value. As we will see, this is not true, by far.
+big stiffness coefficient value. As we can see in the paper and demo, this is not true, by far.
 
 # Links
  - Matthias Müller main page: https://matthias-research.github.io/pages/index.html
