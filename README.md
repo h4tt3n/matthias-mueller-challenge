@@ -14,5 +14,5 @@ most noticeable the idea that in order to get infinite spring stiffness you need
 big stiffness coefficient value. As we will see, this is not true, by far.
 
 # Links
-Matthias Müller main page: https://matthias-research.github.io/pages/index.html
-Challenge: https://matthias-research.github.io/pages/challenges/challenges.html
+ - Matthias Müller main page: https://matthias-research.github.io/pages/index.html
+ - Challenge: https://matthias-research.github.io/pages/challenges/challenges.html
