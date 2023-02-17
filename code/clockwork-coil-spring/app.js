@@ -8,9 +8,9 @@
 //******************************************************************************* 
 
 //   Global constants
-const DT                    = 1.0 / 100.0;                    //  timestep
+const DT                    = 1.0 / 60.0;                    //  timestep
 const INV_DT                = 1.0 / DT;                      //  inverse timestep
-const GRAVITY               = 5.0;                           //  GRAVITY
+const GRAVITY               = 10.0;                           //  GRAVITY
 const DENSITY               = 0.5;                           //  ball density
 const PI                    = Math.PI;                       //  PI
 const SCREEN_WID            = 1000;                          //  screen width
@@ -148,16 +148,15 @@ class Particle {
 		if( this.inverseMass > 0.0 ){
 			this.velocity = this.velocity.add(this.impulse);
 			this.position = this.position.add(this.velocity.mul(DT));
-			this.impulse = new Vector2(0.0, GRAVITY);
-		} else {
-			this.impulse = new Vector2();
+			this.velocity = this.velocity.add(new Vector2(0.0, DT*GRAVITY));
 		}
+		this.impulse = new Vector2();
 	}
 }
 
 class Spring {
     constructor(){
-		this.cStiffness = 0.5;
+		this.cStiffness = 1.0;
 		this.cDamping = 1.0;
 		this.cWarmstart = 0.5;
         this.accumulatedImpulse = new Vector2();
@@ -217,7 +216,7 @@ class Spring {
 
 class AngularSpring {
     constructor(){
-		this.cStiffness = 0.5;
+		this.cStiffness = 1.0;
 		this.cDamping = 1.0;
 		this.cWarmstart = 0.5;
         this.angle = new Vector2();
@@ -344,11 +343,11 @@ function demo1(){
 	iterations = 5
 	warmstart  = 1
 	
-	var num_Particles       = 208;
-	var num_Springs         = 207;
-	var num_angular_Springs = 206;
-	var SpringLength        = 50.0;
-	var Angle               = 3/4 * 2 * PI;
+	var num_Particles       = 64;
+	var num_Springs         = 63;
+	var num_angular_Springs = 62;
+	var SpringLength        = 60.0;
+	var Angle               = 1/4 * 2 * PI;
 	var delta_angle         = 0.05 * 2 * PI;
 	
 	//
@@ -361,12 +360,12 @@ function demo1(){
 		
 		var p = new Particle();
 		
-		var mass = 1.0 + i;
+		var mass = i == 0 ? 1000.0 : 1.0 ;
 		
 		p.inverseMass = i > num_Particles-3 ? 0.0 : 1.0 / mass;
 		p.radius = Math.pow((( mass / DENSITY ) / (4/3) * PI), 1/3); // TODO: Check this equation
 		
-		var center = new Vector2( SCREEN_WID * 0.5, SCREEN_HGT * 0.5 );
+		var center = new Vector2( SCREEN_WID * 0.5, SCREEN_HGT * 0.3 );
 		var position = new Vector2( Math.cos(Angle), Math.sin(Angle) ).mul(SpringLength);
 
 		p.position = center.add(position);
@@ -605,14 +604,14 @@ function runSimulation(){
 
 function applyCorrectiveLinearImpulse(){
 	
-	for(var i = 0; i < spring.length; i++){
-		//if(i % 2 == 0){
+	for(var i = spring.length-1; i > 0; --i){
+		//if(i % 2 == 1){
 			spring[i].computeCorrectiveImpulse();
 		//}
 	}
 
-	for(var i = spring.length-1; i > 0; --i){
-		//if(i % 2 == 1){
+	for(var i = 0; i < spring.length; i++){
+		//if(i % 2 == 0){
 			spring[i].computeCorrectiveImpulse();
 		//}
 	}
@@ -620,14 +619,14 @@ function applyCorrectiveLinearImpulse(){
 
 function applyCorrectiveAngularImpulse(){
 
-	for(var i = 0; i < angularspring.length; i++){
-		//if(i % 2 == 0){
+	for(var i = angularspring.length-1; i > 0; --i){
+		//if(i % 2 == 1){
 			angularspring[i].computeCorrectiveImpulse();
 		//}
 	}
 
-	for(var i = angularspring.length-1; i > 0; --i){
-		//if(i % 2 == 1){
+	for(var i = 0; i < angularspring.length; i++){
+		//if(i % 2 == 0){
 			angularspring[i].computeCorrectiveImpulse();
 		//}
 	}

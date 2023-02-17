@@ -124,7 +124,7 @@ function demo1(){
 	
 	var num_Particles = 17;
 	var num_Springs = num_Particles-1;
-	var SpringLength = 10.0;
+	var SpringLength = 20.0;
 	
 	//
 	clearParticles();
@@ -233,10 +233,10 @@ function runSimulation(){
 }
 
 function applyCorrectiveLinearImpulse(){
-	for(var i = 0; i < spring.length; i++){
+	for(var i = spring.length-1; i > 0; --i){
 		spring[i].computeCorrectiveImpulse();
 	}
-	for(var i = spring.length-1; i > 0; --i){
+	for(var i = 0; i < spring.length; i++){
 		spring[i].computeCorrectiveImpulse();
 	}
 }
