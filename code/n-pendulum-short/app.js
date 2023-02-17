@@ -8,9 +8,9 @@
 //******************************************************************************* 
 
 //   Global constants
-const DT      = 1.0 / 100.0;                    //  timestep
+const DT      = 1.0 / 60.0;                    //  timestep
 const INV_DT  = 1.0 / DT;                      //  inverse timestep
-const GRAVITY = 9.82;                           //  GRAVITY
+const GRAVITY = 10.0;                           //  GRAVITY
 const DENSITY = 0.01;                           //  ball density
 
 //	classes
@@ -69,10 +69,9 @@ class Particle {
 		if( this.inverseMass > 0.0 ){
 			this.velocity = this.velocity.add(this.impulse);
 			this.position = this.position.add(this.velocity.mul(DT));
-			this.impulse = new Vector2(0.0, GRAVITY);
-		} else {
-			this.impulse = new Vector2();
+			this.velocity = this.velocity.add(new Vector2(0.0, DT*GRAVITY));
 		}
+		this.impulse = new Vector2();
 	}
 }
 
@@ -80,7 +79,7 @@ class Spring {
     constructor(){
 		this.cStiffness = 1.0;
 		this.cDamping = 1.0;
-		this.cWarmstart = 1.0;
+		//this.cWarmstart = 1.0;
         this.unit = new Vector2();
         this.reducedMass = new Number();
         this.restDistance = new Number();
@@ -101,7 +100,7 @@ class Spring {
 		this.unit = distance.unit();
 		var distance_error = this.unit.dot( distance ) - this.restDistance;
 		var velocity_error = this.unit.dot( velocity );
-		this.restImpulse = -(this.cStiffness * distance_error * INV_DT + this.cDamping * velocity_error);
+		this.restImpulse = -this.cStiffness * distance_error * INV_DT - this.cDamping * velocity_error;
 	}
 }
 
@@ -121,11 +120,11 @@ initiateSimulation();
 function demo1(){
 
 	DemoText = "The n-pendulum";
-	iterations = 20;
+	iterations = 5;
 	
-	var num_Particles = 4;
+	var num_Particles = 17;
 	var num_Springs = num_Particles-1;
-	var SpringLength = 150.0;
+	var SpringLength = 10.0;
 	
 	//
 	clearParticles();
@@ -134,9 +133,9 @@ function demo1(){
 	// create particles
 	for(var i = 0; i < num_Particles; i++){
 		var p = new Particle();
-		var mass = 1.0 + Math.random() * 100.0;
+		var mass = i == num_Particles-1 ? 1000.0 : 1.0;//1.0 + Math.random() * 100.0;
 		p.inverseMass = i == 0 ? 0.0 : 1.0 / mass;
-		p.radius = 8 + Math.pow((3*mass)/(4*Math.PI*DENSITY), (1/3));
+		p.radius = Math.pow((3*mass)/(4*Math.PI*DENSITY), (1/3));
 		var center = new Vector2( window.innerWidth/2, window.innerHeight/5 );
 		var position = new Vector2(i*SpringLength, 0);
 		p.position = center.add(position);	
@@ -183,6 +182,7 @@ function initiateSimulation(){
 	demo1();
 
 	setInterval(runSimulation, 0);
+	updateScreen();
 }
 
 function updateScreen(){
@@ -219,10 +219,12 @@ function updateScreen(){
 		ctx.fill();
 		ctx.closePath();
 	}
+
+	requestAnimationFrame( updateScreen );
 }
 
 function runSimulation(){
-	requestAnimationFrame( updateScreen );
+	
 	computeReusableData();
 	for(var i = 0; i < iterations; i++){
 		applyCorrectiveLinearImpulse();
