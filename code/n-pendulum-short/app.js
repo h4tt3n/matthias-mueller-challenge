@@ -2,16 +2,20 @@
 //
 //  Stable and rigid damped springs using sequential impulses
 //
+//  Wrecking ball
+//  Chain particles all have mass = 1, ball mass = 1000.
+//  No visible stretching
+//
 //  Version 0.51, September 2018, Michael "h4tt3n" Nissen
 //  Converted to JavaScript spring 2022
 //  
 //******************************************************************************* 
 
 //   Global constants
-const DT      = 1.0 / 60.0;                    //  timestep
+const DT      = 1.0 / 100.0;                    //  timestep
 const INV_DT  = 1.0 / DT;                      //  inverse timestep
 const GRAVITY = 10.0;                           //  GRAVITY
-const DENSITY = 0.01;                           //  ball density
+const DENSITY = 1000.0;                           //  ball density
 
 //	classes
 class Vector2 {
@@ -69,9 +73,10 @@ class Particle {
 		if( this.inverseMass > 0.0 ){
 			this.velocity = this.velocity.add(this.impulse);
 			this.position = this.position.add(this.velocity.mul(DT));
-			this.velocity = this.velocity.add(new Vector2(0.0, DT*GRAVITY));
+			//this.velocity = this.velocity.add(new Vector2(0.0, DT*GRAVITY));
 		}
-		this.impulse = new Vector2();
+		//this.impulse = new Vector2();
+		this.impulse = new Vector2(0.0, DT*GRAVITY);
 	}
 }
 
@@ -110,6 +115,13 @@ var ctx = null;
 var DemoText = "";
 var iterations = new Number();
 
+var camera = {
+	position : {x : 0, y : 0},
+	zoom : 40
+};
+
+console.log(camera.position.x);
+
 var particle = [];
 var spring = [];
 
@@ -122,9 +134,10 @@ function demo1(){
 	DemoText = "The n-pendulum";
 	iterations = 5;
 	
-	var num_Particles = 17;
+	var num_Particles = 10;
 	var num_Springs = num_Particles-1;
-	var SpringLength = 20.0;
+	var SpringLength = 0.5;
+	var center = new Vector2( window.innerWidth/2, window.innerHeight/5 );
 	
 	//
 	clearParticles();
@@ -133,14 +146,20 @@ function demo1(){
 	// create particles
 	for(var i = 0; i < num_Particles; i++){
 		var p = new Particle();
-		var mass = i == num_Particles-1 ? 1000.0 : 1.0;//1.0 + Math.random() * 100.0;
+		var mass = i == num_Particles-1 ? 100.0 : 1.0;//1.0 + Math.random() * 100.0;
 		p.inverseMass = i == 0 ? 0.0 : 1.0 / mass;
 		p.radius = Math.pow((3*mass)/(4*Math.PI*DENSITY), (1/3));
-		var center = new Vector2( window.innerWidth/2, window.innerHeight/5 );
+		
 		var position = new Vector2(i*SpringLength, 0);
-		p.position = center.add(position);	
+		p.position = center.add(position);
+
+		camera.position.x = center.x;
+		camera.position.y = center.y;
+
 		particle.push(p);
 	}
+
+	console.log(camera)
 	
 	// create springs
 	for(var i = 0; i < num_Springs; i++){
@@ -187,20 +206,26 @@ function initiateSimulation(){
 
 function updateScreen(){
 	// Clear screen
+	ctx.resetTransform();
 	ctx.fillStyle = "#000000";
 	ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+	var x = -camera.position.x * camera.zoom + canvas.width * 0.5;
+    var y = -camera.position.y * camera.zoom + canvas.height * 0.5;
+
+	ctx.transform(camera.zoom, 0, 0, camera.zoom, x, y);
+
 	// Springs
-	ctx.lineWidth = 8.0;
+	ctx.lineWidth = 0.1;
 	ctx.strokeStyle = "#404040";
 	ctx.lineJoin = "round";
 
 	for(var i = 0; i < spring.length; i++){
 		var pSpring = spring[i]
-		var xA = pSpring.particleA.position.x
-		var yA = pSpring.particleA.position.y
-		var xB = pSpring.particleB.position.x
-		var yB = pSpring.particleB.position.y
+		var xA = pSpring.particleA.position.x;
+        var yA = pSpring.particleA.position.y;
+		var xB = pSpring.particleB.position.x;
+        var yB = pSpring.particleB.position.y;
 		ctx.beginPath();
 		ctx.moveTo(xA, yA);
 		ctx.lineTo(xB, yB);
@@ -212,10 +237,8 @@ function updateScreen(){
 
 	for(var i = 0; i < particle.length; i++){
 		var p = particle[i]
-		var x = p.position.x;
-		var y = p.position.y;
 		ctx.beginPath();
-		ctx.arc(x, y, p.radius, 0, Math.PI * 2);
+		ctx.arc(p.position.x, p.position.y, p.radius, 0, Math.PI * 2);
 		ctx.fill();
 		ctx.closePath();
 	}
