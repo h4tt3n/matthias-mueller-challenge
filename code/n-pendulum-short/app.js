@@ -73,16 +73,16 @@ class Particle {
 		if( this.inverseMass > 0.0 ){
 			this.velocity = this.velocity.add(this.impulse);
 			this.position = this.position.add(this.velocity.mul(DT));
-			//this.velocity = this.velocity.add(new Vector2(0.0, DT*GRAVITY));
+			this.velocity = this.velocity.add(new Vector2(0.0, DT*GRAVITY));
 		}
-		//this.impulse = new Vector2();
-		this.impulse = new Vector2(0.0, DT*GRAVITY);
+		this.impulse = new Vector2();
+		//this.impulse = new Vector2(0.0, DT*GRAVITY);
 	}
 }
 
 class Spring {
     constructor(){
-		this.cStiffness = 1.0;
+		this.cStiffness = 0.5;
 		this.cDamping = 1.0;
 		//this.cWarmstart = 1.0;
         this.unit = new Vector2();
@@ -132,7 +132,7 @@ initiateSimulation();
 function demo1(){
 
 	DemoText = "The n-pendulum";
-	iterations = 5;
+	iterations = 20;
 	
 	var num_Particles = 10;
 	var num_Springs = num_Particles-1;
@@ -146,7 +146,7 @@ function demo1(){
 	// create particles
 	for(var i = 0; i < num_Particles; i++){
 		var p = new Particle();
-		var mass = i == num_Particles-1 ? 100.0 : 1.0;//1.0 + Math.random() * 100.0;
+		var mass = i == num_Particles-1 ? 1.0 : 1.0; //1.0 + Math.random() * 100.0;
 		p.inverseMass = i == 0 ? 0.0 : 1.0 / mass;
 		p.radius = Math.pow((3*mass)/(4*Math.PI*DENSITY), (1/3));
 		
@@ -174,13 +174,13 @@ function demo1(){
 	}
 	
 	// Randomize position - stability test
-	// var displacement = Math.pow(1337, 42);
+	var displacement = 100;
 
-	// for(var i = 1; i < num_Particles; i++){
-	// 	var p = particle[i];
-	// 	p.position.x = p.position.x + Math.random(displacement) - Math.random(displacement);
-	// 	p.position.y = p.position.x + Math.random(displacement) - Math.random(displacement);
-	// }
+	for(var i = 1; i < num_Particles; i++){
+		var p = particle[i];
+		p.position.x = p.position.x + (Math.random() - Math.random()) * displacement;
+		p.position.y = p.position.y + (Math.random() - Math.random()) * displacement;
+	}
 }
 
 function clearParticles(){
