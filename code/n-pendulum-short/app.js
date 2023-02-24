@@ -12,10 +12,11 @@
 //******************************************************************************* 
 
 //   Global constants
-const DT      = 1.0 / 100.0;                    //  timestep
-const INV_DT  = 1.0 / DT;                      //  inverse timestep
-const GRAVITY = 10.0;                           //  GRAVITY
-const DENSITY = 1000.0;                           //  ball density
+const DT      = 1.0 / 100.0;   // Physics engine timestep
+const INV_DT  = 1.0 / DT;      // Physics engine inverse timestep
+const FPS     = 60;            // Screen Framerate
+const GRAVITY = 10.0;          // Gravity
+const DENSITY = 1000.0;        // ball density
 
 //	classes
 class Vector2 {
@@ -82,9 +83,8 @@ class Particle {
 
 class Spring {
     constructor(){
-		this.cStiffness = 0.5;
+		this.cStiffness = 1.0;
 		this.cDamping = 1.0;
-		//this.cWarmstart = 1.0;
         this.unit = new Vector2();
         this.reducedMass = new Number();
         this.restDistance = new Number();
@@ -117,7 +117,7 @@ var iterations = new Number();
 
 var camera = {
 	position : {x : 0, y : 0},
-	zoom : 40
+	zoom : 100
 };
 
 console.log(camera.position.x);
@@ -132,11 +132,11 @@ initiateSimulation();
 function demo1(){
 
 	DemoText = "The n-pendulum";
-	iterations = 20;
+	iterations = 30;
 	
-	var num_Particles = 10;
+	var num_Particles = 16;
 	var num_Springs = num_Particles-1;
-	var SpringLength = 0.5;
+	var SpringLength = 0.4;
 	var center = new Vector2( window.innerWidth/2, window.innerHeight/5 );
 	
 	//
@@ -146,7 +146,7 @@ function demo1(){
 	// create particles
 	for(var i = 0; i < num_Particles; i++){
 		var p = new Particle();
-		var mass = i == num_Particles-1 ? 1.0 : 1.0; //1.0 + Math.random() * 100.0;
+		var mass = i == num_Particles-1 ? 100.0 : 1.0; //1.0 + Math.random() * 100.0;
 		p.inverseMass = i == 0 ? 0.0 : 1.0 / mass;
 		p.radius = Math.pow((3*mass)/(4*Math.PI*DENSITY), (1/3));
 		
@@ -154,7 +154,7 @@ function demo1(){
 		p.position = center.add(position);
 
 		camera.position.x = center.x;
-		camera.position.y = center.y;
+		camera.position.y = center.y+3;
 
 		particle.push(p);
 	}
@@ -174,13 +174,13 @@ function demo1(){
 	}
 	
 	// Randomize position - stability test
-	var displacement = 100;
+	// var displacement = 100;
 
-	for(var i = 1; i < num_Particles; i++){
-		var p = particle[i];
-		p.position.x = p.position.x + (Math.random() - Math.random()) * displacement;
-		p.position.y = p.position.y + (Math.random() - Math.random()) * displacement;
-	}
+	// for(var i = 1; i < num_Particles; i++){
+	// 	var p = particle[i];
+	// 	p.position.x = p.position.x + (Math.random() - Math.random()) * displacement;
+	// 	p.position.y = p.position.y + (Math.random() - Math.random()) * displacement;
+	// }
 }
 
 function clearParticles(){
@@ -200,8 +200,14 @@ function initiateSimulation(){
 
 	demo1();
 
-	setInterval(runSimulation, 0);
-	updateScreen();
+	setInterval(requestScreenUpdate, 1000/FPS);
+	setInterval(runSimulation, 1000/INV_DT);
+	// setInterval(runSimulation, 0);
+	// updateScreen();
+}
+
+function requestScreenUpdate() {
+	requestAnimationFrame(updateScreen);
 }
 
 function updateScreen(){
@@ -243,7 +249,7 @@ function updateScreen(){
 		ctx.closePath();
 	}
 
-	requestAnimationFrame( updateScreen );
+	//requestAnimationFrame( updateScreen );
 }
 
 function runSimulation(){

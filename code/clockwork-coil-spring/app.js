@@ -8,15 +8,14 @@
 //******************************************************************************* 
 
 //   Global constants
-const DT                    = 1.0 / 60.0;                    //  timestep
+const DT                    = 1.0 / 100.0;                    //  timestep
 const INV_DT                = 1.0 / DT;                      //  inverse timestep
+const FPS                   = 60;
 const GRAVITY               = 10.0;                           //  GRAVITY
-const DENSITY               = 0.5;                           //  ball density
+const DENSITY               = 1000;                           //  ball density
 const PI                    = Math.PI;                       //  PI
 const SCREEN_WID            = 1000;                          //  screen width
 const SCREEN_HGT            = 800;                           //  screen height
-const PICK_DISTANCE         = 256.0;                         //  mouse PIck distance
-const PICK_DISTANCE_SQUARED = Math.pow(PICK_DISTANCE, 2.0);  //  mouse pick distance squared
 
 //	classes
 class Vector2 {
@@ -158,7 +157,7 @@ class Spring {
     constructor(){
 		this.cStiffness = 1.0;
 		this.cDamping = 1.0;
-		this.cWarmstart = 0.5;
+		this.cWarmstart = 1.0;
         this.accumulatedImpulse = new Vector2();
         this.unit = new Vector2();
         this.reducedMass = new Number();
@@ -170,46 +169,38 @@ class Spring {
         this.particleB = null;
     }
 	applyWarmstart(){
-		
 		var projected_impulse = this.unit.dot(this.accumulatedImpulse);
-		
 		if( projected_impulse < 0.0 ){
-
 			var warmstart_impulse = this.unit.mul(this.cWarmstart * projected_impulse);
-		
 			this.particleA.impulse = this.particleA.impulse.sub(warmstart_impulse.mul(this.particleA.inverseMass));
 			this.particleB.impulse = this.particleB.impulse.add(warmstart_impulse.mul(this.particleB.inverseMass));
 		}
-
 		this.accumulatedImpulse = new Vector2();
 		//this.accumulatedImpulse = this.accumulatedImpulse.mul(0.25);
 	}
     computeCorrectiveImpulse(){
-
+		//
         var delta_impulse = this.particleB.impulse.sub(this.particleA.impulse);
         var impulse_error = this.unit.dot(delta_impulse) - this.restImpulse;
         var corrective_impulse = this.unit.mul(-impulse_error * this.reducedMass);
-        
+		//
         this.particleA.impulse = this.particleA.impulse.sub(corrective_impulse.mul(this.particleA.inverseMass));
         this.particleB.impulse = this.particleB.impulse.add(corrective_impulse.mul(this.particleB.inverseMass));
-        
+		//
         this.accumulatedImpulse = this.accumulatedImpulse.add(corrective_impulse);
     }
 	computeReusableData(){
-
+		// 
 		var distance = this.particleB.position.sub(this.particleA.position);
 		var velocity = this.particleB.velocity.sub(this.particleA.velocity);
-
 		this.unit = distance.unit();
-
+		// errors
 		var distance_error = this.unit.dot( distance ) - this.restDistance;
 		var velocity_error = this.unit.dot( velocity );
-
 		this.restImpulse = -(this.cStiffness * distance_error * INV_DT + this.cDamping * velocity_error);
-
+		// for angular springs
 		var inertia = distance.lengthSquared() * this.reducedMass;
 		this.inverseInertia = inertia > 0.0 ? 1.0 / inertia : 0.0;
-
 		this.angularVelocity = distance.perpDot( velocity.mul(this.reducedMass)) * this.inverseInertia;
 	}
 }
@@ -218,7 +209,7 @@ class AngularSpring {
     constructor(){
 		this.cStiffness = 1.0;
 		this.cDamping = 1.0;
-		this.cWarmstart = 0.5;
+		this.cWarmstart = 1.0;
         this.angle = new Vector2();
         this.restAngle = new Vector2();
         this.reducedInertia = new Number();
@@ -228,90 +219,61 @@ class AngularSpring {
         this.springB = null;
     }
 	applyWarmstart(){
-
+		//
         var distance_a = this.springA.particleB.position.sub(this.springA.particleA.position);
         var distance_b = this.springB.particleB.position.sub(this.springB.particleA.position);
-		
 		var warmstart_impulse = this.cWarmstart * this.accumulatedImpulse;
-		
 		var new_angular_impulse_a = warmstart_impulse * this.springA.inverseInertia;
 		var new_angular_impulse_b = warmstart_impulse * this.springB.inverseInertia;
-		
 		var new_impulse_a = distance_a.perpDot( new_angular_impulse_a ).mul(this.springA.reducedMass);
 		var new_impulse_b = distance_b.perpDot( new_angular_impulse_b ).mul(this.springB.reducedMass);
-        
+		// apply impulses
         this.springA.particleA.impulse = this.springA.particleA.impulse.add(new_impulse_a.mul(this.springA.particleA.inverseMass));
         this.springA.particleB.impulse = this.springA.particleB.impulse.sub(new_impulse_a.mul(this.springA.particleB.inverseMass));
-        
         this.springB.particleA.impulse = this.springB.particleA.impulse.sub(new_impulse_b.mul(this.springB.particleA.inverseMass));
         this.springB.particleB.impulse = this.springB.particleB.impulse.add(new_impulse_b.mul(this.springB.particleB.inverseMass));
-
+		//
 		this.accumulatedImpulse = 0.0;
 		//this.accumulatedImpulse *= 0.25;
 	}
     computeCorrectiveImpulse(){
-
         // compute current linear perpendicular impulse
         var distance_a = this.springA.particleB.position.sub(this.springA.particleA.position);
         var distance_b = this.springB.particleB.position.sub(this.springB.particleA.position);
-        
         var impulse_a = this.springA.particleB.impulse.sub(this.springA.particleA.impulse);
         var impulse_b = this.springB.particleB.impulse.sub(this.springB.particleA.impulse);
-        
         var local_impulse_a = distance_a.perpDot( impulse_a ) * this.springA.reducedMass;
         var local_impulse_b = distance_b.perpDot( impulse_b ) * this.springB.reducedMass;
-        
         var angular_impulse_a = local_impulse_a * this.springA.inverseInertia;
         var angular_impulse_b = local_impulse_b * this.springB.inverseInertia;
-        
         // compute corrective angular impulse
         var delta_impulse = angular_impulse_b - angular_impulse_a;
         var impulse_error = delta_impulse - this.restImpulse;
         var corrective_impulse = -impulse_error * this.reducedInertia;
-        
         var new_angular_impulse_a = corrective_impulse * this.springA.inverseInertia;
         var new_angular_impulse_b = corrective_impulse * this.springB.inverseInertia;
-        
         // convert to linear perpendicular impulse
 		var new_impulse_a = distance_a.perpDot( new_angular_impulse_a ).mul(this.springA.reducedMass);
 		var new_impulse_b = distance_b.perpDot( new_angular_impulse_b ).mul(this.springB.reducedMass);
-        
-        this.springA.particleA.impulse = this.springA.particleA.impulse.add(new_impulse_a.mul(this.springA.particleA.inverseMass));
+        // Apply linear impulses
+		this.springA.particleA.impulse = this.springA.particleA.impulse.add(new_impulse_a.mul(this.springA.particleA.inverseMass));
         this.springA.particleB.impulse = this.springA.particleB.impulse.sub(new_impulse_a.mul(this.springA.particleB.inverseMass));
-        
         this.springB.particleA.impulse = this.springB.particleA.impulse.sub(new_impulse_b.mul(this.springB.particleA.inverseMass));
         this.springB.particleB.impulse = this.springB.particleB.impulse.add(new_impulse_b.mul(this.springB.particleB.inverseMass));
-        
         // save for warmstart
         this.accumulatedImpulse += corrective_impulse;
     }
 	computeReusableData(){
-
 		this.angle = new Vector2( this.springA.unit.dot( this.springB.unit ), this.springA.unit.perpDot( this.springB.unit ));
-			
 		// errors
 		var angle_error = this.restAngle.perpDot( this.angle );
 		var velocity_error = this.springB.angularVelocity - this.springA.angularVelocity;
-		
 		// reduced moment of inertia denominator
 		var inverse_inertia = this.springA.inverseInertia + this.springB.inverseInertia;
-		
 		this.reducedInertia = inverse_inertia > 0.0 ? 1.0 / inverse_inertia : 0.0;
 		this.restImpulse = -(this.cStiffness * angle_error * INV_DT + this.cDamping * velocity_error);
 	}
 }
-
-class Mouse {
-	constructor() {
-		this.position_ = new Vector2();
-		this.positionPrev_ = new Vector2();
-		this.button_ = new Number();
-		this.buttonPrev_ = new Number();
-		this.wheel_ = new Number();
-		this.wheelPrev_ = new Number();
-	}
-}
-
 
 // global vars (yes, I know...)
 var canvas = null;
@@ -321,13 +283,10 @@ var DemoText = "";
 var iterations = new Number();
 var warmstart = new Number();
 
-var mouse = new Mouse();
-
-var Temp_Dist
-var Picked_Rest_Dist
-var Pick_State
-var Picked_mass_
-var Prod_State
+var camera = {
+	position : {x : 0, y : 0},
+	zoom : 100
+};
 
 var particle = [];
 var spring = [];
@@ -340,15 +299,15 @@ initiateSimulation();
 function demo1(){
 
 	DemoText   = "Mechanical wind-up clock spring"
-	iterations = 5
-	warmstart  = 1
+	iterations = 30;
+	warmstart  = true;
 	
-	var num_Particles       = 64;
-	var num_Springs         = 63;
-	var num_angular_Springs = 62;
-	var SpringLength        = 60.0;
+	var num_Particles       = 128;
+	var num_Springs         = num_Particles-1;
+	var num_angular_Springs = num_Springs-1;
+	var SpringLength        = 0.5;
 	var Angle               = 1/4 * 2 * PI;
-	var delta_angle         = 0.05 * 2 * PI;
+	var delta_angle         = 0.04 * 2 * PI;
 	
 	//
 	clearParticles();
@@ -360,10 +319,10 @@ function demo1(){
 		
 		var p = new Particle();
 		
-		var mass = i == 0 ? 1000.0 : 1.0 ;
+		var mass = i == 0 ? 100.0 : 1.0 ;
 		
-		p.inverseMass = i > num_Particles-3 ? 0.0 : 1.0 / mass;
-		p.radius = Math.pow((( mass / DENSITY ) / (4/3) * PI), 1/3); // TODO: Check this equation
+		p.inverseMass = i > num_Particles-2 ? 0.0 : 1.0 / mass;
+		p.radius = Math.pow((3*mass)/(4*Math.PI*DENSITY), (1/3));//Math.pow((( mass / DENSITY ) / (4/3) * PI), 1/3); // TODO: Check this equation
 		
 		var center = new Vector2( SCREEN_WID * 0.5, SCREEN_HGT * 0.3 );
 		var position = new Vector2( Math.cos(Angle), Math.sin(Angle) ).mul(SpringLength);
@@ -371,7 +330,10 @@ function demo1(){
 		p.position = center.add(position);
 		
 		Angle += delta_angle;
-		SpringLength += 1;
+		SpringLength += 0.01;
+
+		camera.position.x = center.x-1;
+		camera.position.y = center.y+5;
 
 		particle.push(p);
 	}
@@ -420,10 +382,6 @@ function demo1(){
 	// }
 }
 
-function createScreen(wid, hgt){
-
-}
-
 function clearParticles(){
 	particle = [];
 }
@@ -437,11 +395,9 @@ function clearAngularSprings(){
 }
 
 function clearWarmstart(){
-
 	for(var i = 0; i < spring.length; i++){
 		spring[i].accumulatedImpulse = new Vector2();
 	}
-
 	for(var i = 0; i < angularspring.length; i++){
 		angularspring[i].accumulatedImpulse = 0.0;
 	}
@@ -457,84 +413,18 @@ function initiateSimulation(){
 
 	// context
 	ctx = canvas.getContext("2d");
-	ctx.resetTransform();
-
-	// Mouse event handlers
-	canvas.addEventListener('click', mouseClickEventHandler, false);
-	canvas.addEventListener('mousedown', mouseDownEventHandler, false);
-	canvas.addEventListener('mouseup', mouseUpEventHandler, false);
-	canvas.addEventListener('mousemove', mouseMoveEventHandler, false);
-	canvas.addEventListener('wheel', mouseWheelEventHandler, false);
 
 	demo1();
 
-	setInterval(runSimulation, 0);
+	setInterval(requestScreenUpdate, 1000/FPS);
+	setInterval(runSimulation, 1000/INV_DT);
+	//setInterval(runSimulation, 0);
+	//updateScreen();
+	
 }
 
-function updateMouseInput(){
-
-	mouse.Psn_old = mouse.position_
-	mouse.wheelPrev_ = mouse.wheel_
-	mouse.buttonPrev_ = mouse.button_
-
-	//  on mouseklick, find nearest particle
-	if (mouse.button_ == 1) {
-
-		if (Pick_State == false) {
-
-			Temp_Dist = PICK_DISTANCE_SQUARED
-
-			for (var j = 0; j < particle.length; j++) {
-
-				var dst = mouse.position_.sub(particle[j].position)
-
-				if (Math.abs(dst.x) > PICK_DISTANCE) { continue }
-				if (Math.abs(dst.y) > PICK_DISTANCE) { continue }
-
-				var distanceSquared = dst.lengthSquared()
-
-				if (distanceSquared > PICK_DISTANCE_SQUARED) { continue }
-				if (distanceSquared > Temp_Dist) { continue }
-
-				Temp_Dist = distanceSquared
-
-				Picked_mass_ = j
-			}
-		}
-	}
-
-	if (Picked_mass_ != -1) {
-
-		Pick_State = true
-		Picked_Rest_Dist = Math.sqrt(Temp_Dist)
-	  }
-
-	if (mouse.button_ == 2) { Prod_State = true }
-
-	if (mouse.button_ == 0) {
-		Pick_State = false
-		Picked_mass_ = -1
-		Prod_State = false
-	}
-
-	// set mouse - blob fixedAngleSprings_ impulse
-	if (Pick_State == true) {
-
-		var Dist = particle[Picked_mass_].position.sub(mouse.position_)
-		var Distance = Dist.length()
-
-		if (Distance > Picked_Rest_Dist) {
-
-			var impulse = -(Distance - Picked_Rest_Dist) * 24; //particle[Picked_mass_].mass * 64
-
-			particle[Picked_mass_].impulse = particle[Picked_mass_].impulse.add(Dist.div(Distance).mul(impulse))
-
-		}
-	}
-}
-
-function updateKeyInput(){
-
+function requestScreenUpdate() {
+	requestAnimationFrame(updateScreen);
 }
 
 function updateScreen(){
@@ -544,153 +434,97 @@ function updateScreen(){
 	ctx.fillStyle = "#000000";
 	ctx.fillRect(0, 0, canvas.width, canvas.height);
 	
-	// Particles
-	ctx.fillStyle = "#FFFFFF";
+	var x = -camera.position.x * camera.zoom + canvas.width * 0.5;
+    var y = -camera.position.y * camera.zoom + canvas.height * 0.5;
 
-	for(var i = 0; i < particle.length; i++){
-
-		var p = particle[i]
-
-		var x = p.position.x;
-		var y = p.position.y;
-		ctx.setTransform(1, 0, 0, 1, x, y);
-		ctx.beginPath();
-		ctx.arc(0, 0, p.radius, 0, PI * 2);
-		//ctx.fillRect(-2, -2, 4, 4);
-		ctx.fill();
-		ctx.closePath();
-	}
+	ctx.transform(camera.zoom, 0, 0, camera.zoom, x, y);
 
 	// Springs
-	ctx.lineWidth = 2.0;
-	ctx.strokeStyle = "#ffffff";
+	ctx.lineWidth = 0.1;
+	ctx.strokeStyle = "#404040";
 	ctx.lineJoin = "round";
-	ctx.setTransform(1, 0, 0, 1, 0.0, 0.0);
 
 	for(var i = 0; i < spring.length; i++){
 
 		var pSpring = spring[i]
 
-		var xA = pSpring.particleA.position.x
-		var yA = pSpring.particleA.position.y
-		var xB = pSpring.particleB.position.x
-		var yB = pSpring.particleB.position.y
 		ctx.beginPath();
-		ctx.moveTo(xA, yA);
-		ctx.lineTo(xB, yB);
+		ctx.moveTo(pSpring.particleA.position.x, pSpring.particleA.position.y);
+		ctx.lineTo(pSpring.particleB.position.x, pSpring.particleB.position.y);
 		ctx.stroke();
 	}
+
+	// Particles
+	ctx.fillStyle = "#FF0000";
+
+	for(var i = 0; i < particle.length; i++){
+
+		var p = particle[i]
+
+		ctx.beginPath();
+		ctx.arc(p.position.x, p.position.y, p.radius, 0, PI * 2);
+		//ctx.fillRect(-2, -2, 4, 4);
+		ctx.fill();
+		ctx.closePath();
+	}
+
+	//requestAnimationFrame(updateScreen);
 }
 
 function runSimulation(){
 	
-	updateMouseInput();
-	updateKeyInput();
 	computeReusableData();
-	requestAnimationFrame( updateScreen );
 
-	if( warmstart == 1 ){
+	if( warmstart == true ){
 		applyWarmstart();
 	} 
 
 	for(var i = 0; i < iterations; i++){
-
-		applyCorrectiveAngularImpulse();
 		applyCorrectiveLinearImpulse();
+		applyCorrectiveAngularImpulse();
 	}
 
 	computeNewState();
 }
 
 function applyCorrectiveLinearImpulse(){
-	
 	for(var i = spring.length-1; i > 0; --i){
-		//if(i % 2 == 1){
-			spring[i].computeCorrectiveImpulse();
-		//}
+		spring[i].computeCorrectiveImpulse();
 	}
-
 	for(var i = 0; i < spring.length; i++){
-		//if(i % 2 == 0){
-			spring[i].computeCorrectiveImpulse();
-		//}
+		spring[i].computeCorrectiveImpulse();
 	}
 }
 
 function applyCorrectiveAngularImpulse(){
-
 	for(var i = angularspring.length-1; i > 0; --i){
-		//if(i % 2 == 1){
-			angularspring[i].computeCorrectiveImpulse();
-		//}
+		angularspring[i].computeCorrectiveImpulse();
 	}
-
 	for(var i = 0; i < angularspring.length; i++){
-		//if(i % 2 == 0){
-			angularspring[i].computeCorrectiveImpulse();
-		//}
+		angularspring[i].computeCorrectiveImpulse();
 	}
 }
 
 function applyWarmstart(){
-	
 	for(var i = 0; i < spring.length; i++){
-
 		spring[i].applyWarmstart();
 	}
-
 	for(i = 0; i < angularspring.length; i++){
-
 		angularspring[i].applyWarmstart();
 	}
 }
 
 function computeReusableData(){
-
 	for(var i = 0; i < spring.length; i++){
-
 		spring[i].computeReusableData();
 	}
-
 	for(i = 0; i < angularspring.length; i++){
-
 		angularspring[i].computeReusableData();
 	}
 }
 
 function computeNewState(){
-
 	for(var i = 0; i < particle.length; i++){
-
 		particle[i].computeNewState();
 	}
 }
-
-// Mouse eventhandlers
-function mouseClickEventHandler(e) {
-	//console.log('mouseClickEventHandler called!', e);
-	mouse.button_ = e.buttons
-	//console.log(mouse.button_)
-  };
-  
-  function mouseUpEventHandler(e) {
-	//console.log('mouseUpEventHandler called!', e);
-	//mouse.button_ = 0
-  };
-  
-  function mouseDownEventHandler(e) {
-	//console.log('mouseDownEventHandler called!', e);
-	mouse.button_ = e.buttons
-	//console.log(mouse.button_)
-  };
-  
-  function mouseMoveEventHandler(e) {
-	//console.log('mouseMoveEventHandler called!', e);
-	mouse.position_.x = e.clientX
-	mouse.position_.y = e.clientY
-	//console.log("mouse position: ", mouse.position_.x, mouse.position_.y)
-  };
-  
-  function mouseWheelEventHandler(e) {
-	//console.log('mouseWheelEventHandler called!', e);
-  };
