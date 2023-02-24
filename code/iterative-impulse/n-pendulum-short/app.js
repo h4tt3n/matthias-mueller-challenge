@@ -120,8 +120,6 @@ var camera = {
 	zoom : 100
 };
 
-console.log(camera.position.x);
-
 var particle = [];
 var spring = [];
 
