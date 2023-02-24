@@ -15,8 +15,8 @@
 const DT      = 1.0 / 100.0;   // Physics engine timestep
 const INV_DT  = 1.0 / DT;      // Physics engine inverse timestep
 const FPS     = 60;            // Screen Framerate
-const GRAVITY = 10.0;          // Gravity
-const DENSITY = 1000.0;        // ball density
+const GRAVITY = -10.0;          // Gravity
+const DENSITY = 2000.0;        // ball density
 
 //	classes
 class Vector2 {
@@ -93,18 +93,23 @@ class Spring {
         this.particleB = null;
     }
     computeCorrectiveImpulse(){
+		// calculate delta, error, and corrective impulse
         var delta_impulse = this.particleB.impulse.sub(this.particleA.impulse);
         var impulse_error = this.unit.dot(delta_impulse) - this.restImpulse;
         var corrective_impulse = this.unit.mul(-impulse_error * this.reducedMass);
+		// apply impulses
         this.particleA.impulse = this.particleA.impulse.sub(corrective_impulse.mul(this.particleA.inverseMass));
         this.particleB.impulse = this.particleB.impulse.add(corrective_impulse.mul(this.particleB.inverseMass));
     }
 	computeReusableData(){
+		//
 		var distance = this.particleB.position.sub(this.particleA.position);
 		var velocity = this.particleB.velocity.sub(this.particleA.velocity);
 		this.unit = distance.unit();
+		// error
 		var distance_error = this.unit.dot( distance ) - this.restDistance;
 		var velocity_error = this.unit.dot( velocity );
+		// 
 		this.restImpulse = -this.cStiffness * distance_error * INV_DT - this.cDamping * velocity_error;
 	}
 }
@@ -130,7 +135,7 @@ initiateSimulation();
 function demo1(){
 
 	DemoText = "The n-pendulum";
-	iterations = 30;
+	iterations = 25;
 	
 	var num_Particles = 16;
 	var num_Springs = num_Particles-1;
@@ -152,12 +157,10 @@ function demo1(){
 		p.position = center.add(position);
 
 		camera.position.x = center.x;
-		camera.position.y = center.y+3;
+		camera.position.y = center.y-3;
 
 		particle.push(p);
 	}
-
-	console.log(camera)
 	
 	// create springs
 	for(var i = 0; i < num_Springs; i++){
@@ -215,24 +218,20 @@ function updateScreen(){
 	ctx.fillRect(0, 0, canvas.width, canvas.height);
 
 	var x = -camera.position.x * camera.zoom + canvas.width * 0.5;
-    var y = -camera.position.y * camera.zoom + canvas.height * 0.5;
+    var y = camera.position.y * camera.zoom + canvas.height * 0.5;
 
-	ctx.transform(camera.zoom, 0, 0, camera.zoom, x, y);
+	ctx.transform(camera.zoom, 0, 0, -camera.zoom, x, y);
 
 	// Springs
-	ctx.lineWidth = 0.1;
+	ctx.lineWidth = 0.08;
 	ctx.strokeStyle = "#404040";
 	ctx.lineJoin = "round";
 
 	for(var i = 0; i < spring.length; i++){
 		var pSpring = spring[i]
-		var xA = pSpring.particleA.position.x;
-        var yA = pSpring.particleA.position.y;
-		var xB = pSpring.particleB.position.x;
-        var yB = pSpring.particleB.position.y;
 		ctx.beginPath();
-		ctx.moveTo(xA, yA);
-		ctx.lineTo(xB, yB);
+		ctx.moveTo(pSpring.particleA.position.x, pSpring.particleA.position.y);
+		ctx.lineTo(pSpring.particleB.position.x, pSpring.particleB.position.y);
 		ctx.stroke();
 	}
 

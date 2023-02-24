@@ -8,14 +8,14 @@
 //******************************************************************************* 
 
 //   Global constants
-const DT                    = 1.0 / 100.0;                    //  timestep
-const INV_DT                = 1.0 / DT;                      //  inverse timestep
-const FPS                   = 60;
-const GRAVITY               = 10.0;                           //  GRAVITY
-const DENSITY               = 1000;                           //  ball density
-const PI                    = Math.PI;                       //  PI
-const SCREEN_WID            = 1000;                          //  screen width
-const SCREEN_HGT            = 800;                           //  screen height
+const DT         = 1.0 / 100.0; // Physics engine timestep
+const INV_DT     = 1.0 / DT;    // Physics engine inverse timestep
+const FPS        = 60;          // Screen framerate
+const GRAVITY    = -10.0;        // GRAVITY
+const DENSITY    = 2000;        // ball density
+const PI         = Math.PI;     // PI
+const SCREEN_WID = 1000;        // screen width
+const SCREEN_HGT = 800;         // screen height
 
 //	classes
 class Vector2 {
@@ -24,31 +24,18 @@ class Vector2 {
         this.x = x || 0;
         this.y = y || 0;
     }
-
-    //
     add(v){ 
-        //if (v instanceof Vector2){
-            return new Vector2(this.x + v.x, this.y + v.y); 
-        //}
+        return new Vector2(this.x + v.x, this.y + v.y); 
     }
     sub(v){ 
-        //if (v instanceof Vector2){
-            return new Vector2(this.x - v.x, this.y - v.y);
-        //}
+        return new Vector2(this.x - v.x, this.y - v.y);
     }
     mul(s){ 
-        // if (s instanceof Vector2){
-        //     return new Vector2(this.x * s.x, this.y * s.y);
-        // }
-        // else {
-            return new Vector2(this.x * s, this.y * s);
-        //}
+        return new Vector2(this.x * s, this.y * s);
     }
     div(s){ 
         return new Vector2(this.x / s, this.y / s );
     }
-
-    //
     abs() { 
         return new Vector2( Math.abs(this.x), Math.abs(this.y) ); 
     }
@@ -103,8 +90,8 @@ class Vector2 {
         }
     }
     randomizeCircle(b) {	
-        let a = Math.random() * 2.0 * Math.PI; 
-        let r = Math.sqrt( Math.random() * b * b ); 
+        var a = Math.random() * 2.0 * Math.PI; 
+        var r = Math.sqrt( Math.random() * b * b ); 
         return new Vector2( Math.cos(a) * r, Math.sin(a) * r ); 
     }
     randomizeSquare(b) { 
@@ -299,14 +286,14 @@ initiateSimulation();
 function demo1(){
 
 	DemoText   = "Mechanical wind-up clock spring"
-	iterations = 30;
+	iterations = 25;
 	warmstart  = true;
 	
 	var num_Particles       = 128;
 	var num_Springs         = num_Particles-1;
 	var num_angular_Springs = num_Springs-1;
-	var SpringLength        = 0.5;
-	var Angle               = 1/4 * 2 * PI;
+	var SpringLength        = 0.4;
+	var Angle               = 2/4 * 2 * PI;
 	var delta_angle         = 0.04 * 2 * PI;
 	
 	//
@@ -330,10 +317,10 @@ function demo1(){
 		p.position = center.add(position);
 		
 		Angle += delta_angle;
-		SpringLength += 0.01;
+		SpringLength += 0.008;
 
 		camera.position.x = center.x-1;
-		camera.position.y = center.y+5;
+		camera.position.y = center.y-4;
 
 		particle.push(p);
 	}
@@ -435,12 +422,12 @@ function updateScreen(){
 	ctx.fillRect(0, 0, canvas.width, canvas.height);
 	
 	var x = -camera.position.x * camera.zoom + canvas.width * 0.5;
-    var y = -camera.position.y * camera.zoom + canvas.height * 0.5;
+    var y = camera.position.y * camera.zoom + canvas.height * 0.5;
 
-	ctx.transform(camera.zoom, 0, 0, camera.zoom, x, y);
+	ctx.transform(camera.zoom, 0, 0, -camera.zoom, x, y);
 
 	// Springs
-	ctx.lineWidth = 0.1;
+	ctx.lineWidth = 0.08;
 	ctx.strokeStyle = "#404040";
 	ctx.lineJoin = "round";
 
