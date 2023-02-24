@@ -8,14 +8,12 @@
 //******************************************************************************* 
 
 //   Global constants
-const DT         = 1.0 / 100.0; // Physics engine timestep
-const INV_DT     = 1.0 / DT;    // Physics engine inverse timestep
-const FPS        = 60;          // Screen framerate
-const GRAVITY    = -10.0;        // GRAVITY
-const DENSITY    = 2000;        // ball density
-const PI         = Math.PI;     // PI
-const SCREEN_WID = 1000;        // screen width
-const SCREEN_HGT = 800;         // screen height
+const DT       = 1.0 / 100.0;  // Physics engine timestep
+const INV_DT   = 1.0 / DT;     // Physics engine inverse timestep
+const ITER     = 25;           // Physics engine impulse iterations
+const FPS      = 60;           // Screen framerate
+const GRAVITY  = -10.0;        // GRAVITY
+const DENSITY  = 2000;         // ball density
 
 //	classes
 class Vector2 {
@@ -90,7 +88,7 @@ class Vector2 {
         }
     }
     randomizeCircle(b) {	
-        var a = Math.random() * 2.0 * Math.PI; 
+        var a = Math.random() * 2.0 * Math.Math.PI; 
         var r = Math.sqrt( Math.random() * b * b ); 
         return new Vector2( Math.cos(a) * r, Math.sin(a) * r ); 
     }
@@ -143,7 +141,7 @@ class Particle {
 class Spring {
     constructor(){
 		this.cStiffness = 1.0;
-		this.cDamping = 1.0;
+		this.cDamping = 0.5;
 		this.cWarmstart = 1.0;
         this.accumulatedImpulse = new Vector2();
         this.unit = new Vector2();
@@ -195,7 +193,7 @@ class Spring {
 class AngularSpring {
     constructor(){
 		this.cStiffness = 1.0;
-		this.cDamping = 1.0;
+		this.cDamping = 0.5;
 		this.cWarmstart = 1.0;
         this.angle = new Vector2();
         this.restAngle = new Vector2();
@@ -221,7 +219,6 @@ class AngularSpring {
         this.springB.particleB.impulse = this.springB.particleB.impulse.add(new_impulse_b.mul(this.springB.particleB.inverseMass));
 		//
 		this.accumulatedImpulse = 0.0;
-		//this.accumulatedImpulse *= 0.25;
 	}
     computeCorrectiveImpulse(){
         // compute current linear perpendicular impulse
@@ -265,10 +262,7 @@ class AngularSpring {
 // global vars (yes, I know...)
 var canvas = null;
 var ctx = null;
-var DemoText = "";
-
-var iterations = new Number();
-var warmstart = new Number();
+var warmstart = false;
 
 var camera = {
 	position : {x : 0, y : 0},
@@ -285,16 +279,14 @@ initiateSimulation();
 // functions
 function demo1(){
 
-	DemoText   = "Mechanical wind-up clock spring"
-	iterations = 25;
 	warmstart  = true;
 	
 	var num_Particles       = 128;
 	var num_Springs         = num_Particles-1;
 	var num_angular_Springs = num_Springs-1;
 	var SpringLength        = 0.4;
-	var Angle               = 2/4 * 2 * PI;
-	var delta_angle         = 0.04 * 2 * PI;
+	var Angle               = 2/4 * 2 * Math.PI;
+	var delta_angle         = 0.04 * 2 * Math.PI;
 	
 	//
 	clearParticles();
@@ -303,43 +295,29 @@ function demo1(){
 	
 	// create particles
 	for(var i = 0; i < num_Particles; i++){
-		
 		var p = new Particle();
-		
 		var mass = i == 0 ? 100.0 : 1.0 ;
-		
 		p.inverseMass = i > num_Particles-2 ? 0.0 : 1.0 / mass;
-		p.radius = Math.pow((3*mass)/(4*Math.PI*DENSITY), (1/3));//Math.pow((( mass / DENSITY ) / (4/3) * PI), 1/3); // TODO: Check this equation
-		
-		var center = new Vector2( SCREEN_WID * 0.5, SCREEN_HGT * 0.3 );
+		p.radius = Math.pow((3*mass)/(4*Math.PI*DENSITY), (1/3));//Math.pow((( mass / DENSITY ) / (4/3) * Math.PI), 1/3); // TODO: Check this equation
+		var center = new Vector2( window.innerWidth/2, window.innerHeight/5 );
 		var position = new Vector2( Math.cos(Angle), Math.sin(Angle) ).mul(SpringLength);
-
 		p.position = center.add(position);
-		
 		Angle += delta_angle;
 		SpringLength += 0.008;
-
 		camera.position.x = center.x-1;
 		camera.position.y = center.y-4;
-
 		particle.push(p);
 	}
 	
 	// create springs
 	for(var i = 0; i < num_Springs; i++){
-		
-		var s = new Spring();
-				
+		var s = new Spring();			
 		s.particleA = particle[i];
 		s.particleB = particle[i+1];
-		
 		s.restDistance = ( s.particleB.position.sub(s.particleA.position)).length();
 		s.unit = ( s.particleB.position.sub(s.particleA.position)).unit();
-		
 		var inverseMass = s.particleA.inverseMass + s.particleB.inverseMass;
-		
 		s.reducedMass = inverseMass > 0.0 ? 1.0 / inverseMass : 0.0;
-		
 		spring.push(s);
 	}
 	
@@ -405,9 +383,6 @@ function initiateSimulation(){
 
 	setInterval(requestScreenUpdate, 1000/FPS);
 	setInterval(runSimulation, 1000/INV_DT);
-	//setInterval(runSimulation, 0);
-	//updateScreen();
-	
 }
 
 function requestScreenUpdate() {
@@ -432,9 +407,7 @@ function updateScreen(){
 	ctx.lineJoin = "round";
 
 	for(var i = 0; i < spring.length; i++){
-
 		var pSpring = spring[i]
-
 		ctx.beginPath();
 		ctx.moveTo(pSpring.particleA.position.x, pSpring.particleA.position.y);
 		ctx.lineTo(pSpring.particleB.position.x, pSpring.particleB.position.y);
@@ -445,32 +418,23 @@ function updateScreen(){
 	ctx.fillStyle = "#FF0000";
 
 	for(var i = 0; i < particle.length; i++){
-
 		var p = particle[i]
-
 		ctx.beginPath();
-		ctx.arc(p.position.x, p.position.y, p.radius, 0, PI * 2);
-		//ctx.fillRect(-2, -2, 4, 4);
+		ctx.arc(p.position.x, p.position.y, p.radius, 0, Math.PI * 2);
 		ctx.fill();
 		ctx.closePath();
 	}
-
-	//requestAnimationFrame(updateScreen);
 }
 
 function runSimulation(){
-	
 	computeReusableData();
-
 	if( warmstart == true ){
 		applyWarmstart();
 	} 
-
-	for(var i = 0; i < iterations; i++){
+	for(var i = 0; i < ITER; i++){
 		applyCorrectiveLinearImpulse();
 		applyCorrectiveAngularImpulse();
 	}
-
 	computeNewState();
 }
 

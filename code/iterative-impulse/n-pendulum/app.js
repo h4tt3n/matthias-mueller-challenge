@@ -7,15 +7,16 @@
 //  No visible stretching
 //
 //  Version 0.51, September 2018, Michael "h4tt3n" Nissen
-//  Converted to JavaScript spring 2022
+//  Converted to JavaScript constraints 2022
 //  
 //******************************************************************************* 
 
 //   Global constants
 const DT      = 1.0 / 100.0;   // Physics engine timestep
 const INV_DT  = 1.0 / DT;      // Physics engine inverse timestep
+const ITER    = 25;            // Physics engine impulse iterations
 const FPS     = 60;            // Screen Framerate
-const GRAVITY = -10.0;          // Gravity
+const GRAVITY = -10.0;         // Gravity
 const DENSITY = 2000.0;        // ball density
 
 //	classes
@@ -61,30 +62,30 @@ class Vector2 {
 
 class Particle {
     constructor() {
-      this.position = new Vector2();
-      this.velocity = new Vector2();
-      this.impulse = new Vector2();
+      this.pos = new Vector2();
+      this.vel = new Vector2();
+      this.imp = new Vector2();
       this.radius = new Number();
-      this.inverseMass = new Number();
+      this.invMass = new Number();
     }
 	computeInverseMass(mass) {
-        this.inverseMass = mass > 0.0 ? 1.0 / mass : 0.0;
+        this.invMass = mass > 0.0 ? 1.0 / mass : 0.0;
     }
 	computeNewState(){
-		if( this.inverseMass > 0.0 ){
-			this.velocity = this.velocity.add(this.impulse);
-			this.position = this.position.add(this.velocity.mul(DT));
-			this.velocity = this.velocity.add(new Vector2(0.0, DT*GRAVITY));
+		if( this.invMass > 0.0 ){
+			this.vel = this.vel.add(this.imp);
+			this.pos = this.pos.add(this.vel.mul(DT));
+			this.vel = this.vel.add(new Vector2(0.0, DT*GRAVITY));
 		}
-		this.impulse = new Vector2();
-		//this.impulse = new Vector2(0.0, DT*GRAVITY);
+		this.imp = new Vector2();
+		//this.imp = new Vector2(0.0, DT*GRAVITY);
 	}
 }
 
 class Spring {
     constructor(){
 		this.cStiffness = 1.0;
-		this.cDamping = 1.0;
+		this.cDamping = 0.5;
         this.unit = new Vector2();
         this.reducedMass = new Number();
         this.restDistance = new Number();
@@ -93,22 +94,22 @@ class Spring {
         this.particleB = null;
     }
     computeCorrectiveImpulse(){
-		// calculate delta, error, and corrective impulse
-        var delta_impulse = this.particleB.impulse.sub(this.particleA.impulse);
+		// calculate delta, error, and corrective imp
+        var delta_impulse = this.particleB.imp.sub(this.particleA.imp);
         var impulse_error = this.unit.dot(delta_impulse) - this.restImpulse;
         var corrective_impulse = this.unit.mul(-impulse_error * this.reducedMass);
 		// apply impulses
-        this.particleA.impulse = this.particleA.impulse.sub(corrective_impulse.mul(this.particleA.inverseMass));
-        this.particleB.impulse = this.particleB.impulse.add(corrective_impulse.mul(this.particleB.inverseMass));
+        this.particleA.imp = this.particleA.imp.sub(corrective_impulse.mul(this.particleA.invMass));
+        this.particleB.imp = this.particleB.imp.add(corrective_impulse.mul(this.particleB.invMass));
     }
 	computeReusableData(){
 		//
-		var distance = this.particleB.position.sub(this.particleA.position);
-		var velocity = this.particleB.velocity.sub(this.particleA.velocity);
+		var distance = this.particleB.pos.sub(this.particleA.pos);
+		var vel = this.particleB.vel.sub(this.particleA.vel);
 		this.unit = distance.unit();
 		// error
 		var distance_error = this.unit.dot( distance ) - this.restDistance;
-		var velocity_error = this.unit.dot( velocity );
+		var velocity_error = this.unit.dot( vel );
 		// 
 		this.restImpulse = -this.cStiffness * distance_error * INV_DT - this.cDamping * velocity_error;
 	}
@@ -117,16 +118,14 @@ class Spring {
 // global vars (yes, I know...)
 var canvas = null;
 var ctx = null;
-var DemoText = "";
-var iterations = new Number();
 
 var camera = {
-	position : {x : 0, y : 0},
+	pos : {x : 0, y : 0},
 	zoom : 100
 };
 
-var particle = [];
-var spring = [];
+var particles = [];
+var constraints = [];
 
 initiateSimulation();
 
@@ -134,9 +133,6 @@ initiateSimulation();
 // functions
 function demo1(){
 
-	DemoText = "The n-pendulum";
-	iterations = 25;
-	
 	var num_Particles = 16;
 	var num_Springs = num_Particles-1;
 	var SpringLength = 0.4;
@@ -144,52 +140,52 @@ function demo1(){
 	
 	//
 	clearParticles();
-	clearSprings();
+	clearConstraints();
 	
 	// create particles
 	for(var i = 0; i < num_Particles; i++){
 		var p = new Particle();
 		var mass = i == num_Particles-1 ? 100.0 : 1.0; //1.0 + Math.random() * 100.0;
-		p.inverseMass = i == 0 ? 0.0 : 1.0 / mass;
+		p.invMass = i == 0 ? 0.0 : 1.0 / mass;
 		p.radius = Math.pow((3*mass)/(4*Math.PI*DENSITY), (1/3));
 		
-		var position = new Vector2(i*SpringLength, 0);
-		p.position = center.add(position);
+		var pos = new Vector2(i*SpringLength, 0);
+		p.pos = center.add(pos);
 
-		camera.position.x = center.x;
-		camera.position.y = center.y-3;
+		camera.pos.x = center.x;
+		camera.pos.y = center.y-3;
 
-		particle.push(p);
+		particles.push(p);
 	}
 	
 	// create springs
 	for(var i = 0; i < num_Springs; i++){
 		var s = new Spring();	
-		s.particleA = particle[i];
-		s.particleB = particle[i+1];
-		s.restDistance = ( s.particleB.position.sub(s.particleA.position)).length();
-		s.unit = ( s.particleB.position.sub(s.particleA.position)).unit();
-		var inverseMass = s.particleA.inverseMass + s.particleB.inverseMass;
-		s.reducedMass = inverseMass > 0.0 ? 1.0 / inverseMass : 0.0;
-		spring.push(s);
+		s.particleA = particles[i];
+		s.particleB = particles[i+1];
+		s.restDistance = ( s.particleB.pos.sub(s.particleA.pos)).length();
+		s.unit = ( s.particleB.pos.sub(s.particleA.pos)).unit();
+		var invMass = s.particleA.invMass + s.particleB.invMass;
+		s.reducedMass = invMass > 0.0 ? 1.0 / invMass : 0.0;
+		constraints.push(s);
 	}
 	
-	// Randomize position - stability test
+	// Randomize pos - stability test
 	// var displacement = 100;
 
 	// for(var i = 1; i < num_Particles; i++){
-	// 	var p = particle[i];
-	// 	p.position.x = p.position.x + (Math.random() - Math.random()) * displacement;
-	// 	p.position.y = p.position.y + (Math.random() - Math.random()) * displacement;
+	// 	var p = particles[i];
+	// 	p.pos.x = p.pos.x + (Math.random() - Math.random()) * displacement;
+	// 	p.pos.y = p.pos.y + (Math.random() - Math.random()) * displacement;
 	// }
 }
 
 function clearParticles(){
-	particle = [];
+	particles = [];
 }
 
-function clearSprings(){
-	spring = [];
+function clearConstraints(){
+	constraints = [];
 }
 
 function initiateSimulation(){
@@ -217,8 +213,8 @@ function updateScreen(){
 	ctx.fillStyle = "#000000";
 	ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-	var x = -camera.position.x * camera.zoom + canvas.width * 0.5;
-    var y = camera.position.y * camera.zoom + canvas.height * 0.5;
+	var x = -camera.pos.x * camera.zoom + canvas.width * 0.5;
+    var y = camera.pos.y * camera.zoom + canvas.height * 0.5;
 
 	ctx.transform(camera.zoom, 0, 0, -camera.zoom, x, y);
 
@@ -227,54 +223,52 @@ function updateScreen(){
 	ctx.strokeStyle = "#404040";
 	ctx.lineJoin = "round";
 
-	for(var i = 0; i < spring.length; i++){
-		var pSpring = spring[i]
+	for(var i = 0; i < constraints.length; i++){
+		var pSpring = constraints[i]
 		ctx.beginPath();
-		ctx.moveTo(pSpring.particleA.position.x, pSpring.particleA.position.y);
-		ctx.lineTo(pSpring.particleB.position.x, pSpring.particleB.position.y);
+		ctx.moveTo(pSpring.particleA.pos.x, pSpring.particleA.pos.y);
+		ctx.lineTo(pSpring.particleB.pos.x, pSpring.particleB.pos.y);
 		ctx.stroke();
 	}
 
 	// Particles
 	ctx.fillStyle = "#FF0000";
 
-	for(var i = 0; i < particle.length; i++){
-		var p = particle[i]
+	for(var i = 0; i < particles.length; i++){
+		var p = particles[i]
 		ctx.beginPath();
-		ctx.arc(p.position.x, p.position.y, p.radius, 0, Math.PI * 2);
+		ctx.arc(p.pos.x, p.pos.y, p.radius, 0, Math.PI * 2);
 		ctx.fill();
 		ctx.closePath();
 	}
-
-	//requestAnimationFrame( updateScreen );
 }
 
 function runSimulation(){
 	
 	computeReusableData();
-	for(var i = 0; i < iterations; i++){
+	for(var i = 0; i < ITER; i++){
 		applyCorrectiveLinearImpulse();
 	}
 	computeNewState();
 }
 
 function applyCorrectiveLinearImpulse(){
-	for(var i = spring.length-1; i > 0; --i){
-		spring[i].computeCorrectiveImpulse();
+	for(var i = constraints.length-1; i > 0; --i){
+		constraints[i].computeCorrectiveImpulse();
 	}
-	for(var i = 0; i < spring.length; i++){
-		spring[i].computeCorrectiveImpulse();
+	for(var i = 0; i < constraints.length; i++){
+		constraints[i].computeCorrectiveImpulse();
 	}
 }
 
 function computeReusableData(){
-	for(var i = 0; i < spring.length; i++){
-		spring[i].computeReusableData();
+	for(var i = 0; i < constraints.length; i++){
+		constraints[i].computeReusableData();
 	}
 }
 
 function computeNewState(){
-	for(var i = 0; i < particle.length; i++){
-		particle[i].computeNewState();
+	for(var i = 0; i < particles.length; i++){
+		particles[i].computeNewState();
 	}
 }
