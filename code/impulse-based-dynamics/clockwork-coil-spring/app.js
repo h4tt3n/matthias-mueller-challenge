@@ -141,7 +141,7 @@ class Particle {
 class Spring {
     constructor(){
 		this.cStiffness = 1.0;
-		this.cDamping = 0.5;
+		this.cDamping = 1.0;
 		this.cWarmstart = 1.0;
         this.accumulatedImpulse = new Vector2();
         this.unit = new Vector2();
@@ -193,7 +193,7 @@ class Spring {
 class AngularSpring {
     constructor(){
 		this.cStiffness = 1.0;
-		this.cDamping = 0.5;
+		this.cDamping = 1.0;
 		this.cWarmstart = 1.0;
         this.angle = new Vector2();
         this.restAngle = new Vector2();

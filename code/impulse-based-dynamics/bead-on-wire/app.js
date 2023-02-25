@@ -1,6 +1,6 @@
 //*******************************************************************************
 //
-//  Stable and rigid damped springs using sequential impulses
+//  Stable and rigid springs using sequential impulses
 //  
 //  Bead-on-a-wire using single spring
 //
@@ -10,12 +10,13 @@
 //******************************************************************************* 
 
 //   Global constants
-const DT      = 1.0 / 200.0;   // Physics engine timestep
-const INV_DT  = 1.0 / DT;      // Physics engine inverse timestep
-const ITER    = 1;            // Physics engine impulse iterations
+const DT      = 1/100;   // Physics engine timestep
+const INV_DT  = 1/DT;      // Physics engine inverse timestep
 const FPS     = 60;            // Screen Framerate
-const GRAVITY = -10.0;         // Gravity
+const GRAVITY = -9.82;         // Gravity
 const DENSITY = 2000.0;        // ball density
+
+console.log(DT, INV_DT, 1000/INV_DT)
 
 //	classes
 class Vector2 {
@@ -120,7 +121,7 @@ var ctx = null;
 
 var camera = {
 	pos : {x : 0, y : 0},
-	zoom : 100
+	zoom : 200
 };
 
 var particles = [];
@@ -134,7 +135,8 @@ function demo1(){
 
 	var num_Particles = 2;
 	var num_Springs = num_Particles-1;
-	var SpringLength = 4;
+	var SpringLength = 1.0;
+	var ballAngle = 0.23*Math.PI*2;
 	var center = new Vector2( window.innerWidth/2, window.innerHeight/5 );
 	
 	//
@@ -144,12 +146,10 @@ function demo1(){
 	// create particles
 	for(var i = 0; i < num_Particles; i++){
 		var p = new Particle();
-		var mass = i == num_Particles-1 ? 100.0 : 1.0; //1.0 + Math.random() * 100.0;
+		var mass = 1.0;
 		p.invMass = i == 0 ? 0.0 : 1.0 / mass;
 		p.radius = Math.pow((3*mass)/(4*Math.PI*DENSITY), (1/3));
-		
-		//var pos = new Vector2(i*SpringLength, 0);
-		var pos = new Vector2(i*Math.cos(0.23*Math.PI*2)*SpringLength, i*Math.sin(0.23*Math.PI*2)*SpringLength);
+		var pos = new Vector2(i*Math.cos(ballAngle)*SpringLength, i*Math.sin(ballAngle)*SpringLength);
 		p.pos = center.add(pos);
 		p.startPos = p.pos;
 
@@ -198,14 +198,11 @@ function initiateSimulation(){
 
 	demo1();
 
-	setInterval(requestScreenUpdate, 1000/FPS);
-	setInterval(runSimulation, 1000/INV_DT);
-	// setInterval(runSimulation, 0);
+	setInterval(function(){ requestAnimationFrame(updateScreen); }, 1000/FPS);
+	setInterval(runSimulation, 10);
+	//setInterval(runSimulation, 0);
+	//runSimulation();
 	// updateScreen();
-}
-
-function requestScreenUpdate() {
-	requestAnimationFrame(updateScreen);
 }
 
 function updateScreen(){
@@ -220,10 +217,6 @@ function updateScreen(){
 	ctx.transform(camera.zoom, 0, 0, -camera.zoom, x, y);
 
 	// Springs
-	ctx.lineWidth = 0.08;
-	ctx.strokeStyle = "#666666";
-	ctx.lineJoin = "round";
-
 	for(var i = 0; i < constraints.length; i++){
 		var pSpring = constraints[i]
 		
@@ -236,7 +229,7 @@ function updateScreen(){
 		// Wire
 		ctx.beginPath();
 		ctx.arc(pSpring.particleA.pos.x, pSpring.particleA.pos.y, pSpring.restDistance, 0, Math.PI * 2);
-        ctx.lineWidth = 0.04;
+        ctx.lineWidth = 0.02;
         ctx.strokeStyle = "#00FF00";
         ctx.stroke();
 	}
@@ -252,8 +245,7 @@ function updateScreen(){
 		// Start position
 		ctx.beginPath();
 		ctx.arc(p.startPos.x, p.startPos.y, p.radius, 0, Math.PI * 2);
-		ctx.closePath();
-		ctx.lineWidth = 0.04;
+		ctx.lineWidth = 0.02;
         ctx.strokeStyle = "#FFFFFF";
         ctx.stroke();
 
@@ -268,16 +260,11 @@ function updateScreen(){
 function runSimulation(){
 	
 	computeReusableData();
-	for(var i = 0; i < ITER; i++){
-		applyCorrectiveLinearImpulse();
-	}
+	applyCorrectiveLinearImpulse();
 	computeNewState();
 }
 
 function applyCorrectiveLinearImpulse(){
-	for(var i = constraints.length-1; i > 0; --i){
-		constraints[i].computeCorrectiveImpulse();
-	}
 	for(var i = 0; i < constraints.length; i++){
 		constraints[i].computeCorrectiveImpulse();
 	}
