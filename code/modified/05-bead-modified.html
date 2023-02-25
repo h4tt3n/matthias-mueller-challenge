@@ -6,6 +6,15 @@ Permission is hereby granted, free of charge, to any person obtaining a copy of 
 The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
+// UPDATE! -------------------------------------------------------
+
+Modified by Michael Schmidt Nissen, february 2023
+
+Impulse based approach has been added for comparison. The impulse based version vastly outperforms PBD. 
+It displays very good results at just 10 substeps, while PBD needs about 1000 substeps to perform similarly well.
+
 -->
 
 <!DOCTYPE html>
@@ -37,7 +46,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 	<button class="button" onclick="run()">Run</button>
 	<button class="button" onclick="step()">Step</button>
 	<br>
-	PBD <span id = "force">0</span>  &emsp; Analytic <span id ="aforce">0</span>
+	PBD (red) <span id = "force">0</span> <br> Impulse (blue) <span id = "impulse">0</span> <br> Analytic (green) <span id ="aforce">0</span>
 	<br>
 
 	<canvas id="myCanvas"></canvas>
@@ -136,12 +145,13 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 		wireCenter : new Vector2(),
 		wireRadius : 0.0,
 		bead : null,
+		impulseBead : null,
         analyticBead : null
 	};
 
-    // -------------------------------------------------------
-
-    class Bead {
+   // -------------------------------------------------------
+ 
+	class Bead {
 		constructor(radius, mass, pos) {
 			this.radius = radius;
 			this.mass = mass;
@@ -171,9 +181,9 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 		}
 	}
 
-   // -------------------------------------------------------
+// -------------------------------------------------------
  
-	class BeadModified {
+	class ImpulseBead {
 		constructor(radius, mass, pos) {
 			this.radius = radius;
 			this.mass = mass;
@@ -195,7 +205,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 			dir.scale(1.0 / len);
 			var lambda = physicsScene.wireRadius - len;
 			//this.pos.add(dir, lambda);
-			this.vel.add(dir, lambda / dt)
+			this.vel.add(dir, lambda / dt) // <--- Added this line
 			return lambda;
 		}
 		// endStep(dt) {
@@ -203,6 +213,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 		// 	this.vel.scale(1.0 / dt);
 		// }
 	}
+
 
 // -------------------------------------------------------
 
@@ -246,10 +257,13 @@ class AnalyticBead {
 
         physicsScene.bead = new Bead(0.1, 1.0, pos);
 
+		physicsScene.impulseBead = new ImpulseBead(0.1, 1.0, pos);
+
 		physicsScene.analyticBead = new AnalyticBead(
 			physicsScene.wireRadius, 0.1, 1.0, 0.5 * Math.PI);
 
-        document.getElementById("force").innerHTML = 0.0.toFixed(3);		
+        document.getElementById("force").innerHTML = 0.0.toFixed(3);
+		document.getElementById("impulse").innerHTML = 0.0.toFixed(3);	
         document.getElementById("aforce").innerHTML = 0.0.toFixed(3);		
 
 	}
@@ -281,12 +295,17 @@ class AnalyticBead {
 		var bead = physicsScene.bead;
 		drawCircle(bead.pos, bead.radius, true);
 
+		c.fillStyle = "#0000FF";
+
+		var impulseBead = physicsScene.impulseBead;
+		drawCircle(impulseBead.pos, impulseBead.radius*0.9, true);
+
         c.fillStyle = "#00FF00";
 
         var analyticBead = physicsScene.analyticBead;
         var pos = analyticBead.getPos();
         pos.add(physicsScene.wireCenter);
-        drawCircle(pos, analyticBead.beadRadius, true)        
+        drawCircle(pos, analyticBead.beadRadius*0.8, true)        
 	}
 
 	// ------------------------------------------------
@@ -302,17 +321,20 @@ class AnalyticBead {
 		for (var step = 0; step < physicsScene.numSteps; step++) {
 
             physicsScene.bead.startStep(sdt, physicsScene.gravity);
+			physicsScene.impulseBead.startStep(sdt, physicsScene.gravity);
 
-			var lambda = physicsScene.bead.keepOnWire(sdt, physicsScene.wireCenter, physicsScene.wireRadius);
+			var lambda = physicsScene.bead.keepOnWire(physicsScene.wireCenter, physicsScene.wireRadius);
+			physicsScene.impulseBead.keepOnWire(sdt, physicsScene.wireCenter, physicsScene.wireRadius);
             
             force = Math.abs(lambda / sdt / sdt);                    
 
-			//physicsScene.bead.endStep(sdt);
+			physicsScene.bead.endStep(sdt);
 
             analyticForce = physicsScene.analyticBead.simulate(sdt, -physicsScene.gravity.y);
 		}
 
-		document.getElementById("force").innerHTML = force.toFixed(3);		
+		document.getElementById("force").innerHTML = force.toFixed(3);
+		document.getElementById("impulse").innerHTML = force.toFixed(3);	
 		document.getElementById("aforce").innerHTML = analyticForce.toFixed(3);	        
 	}
 
