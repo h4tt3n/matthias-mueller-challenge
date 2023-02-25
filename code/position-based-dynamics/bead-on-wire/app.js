@@ -10,13 +10,11 @@
 //******************************************************************************* 
 
 //   Global constants
-const DT      = 1/100;   // Physics engine timestep
-const INV_DT  = 1/DT;      // Physics engine inverse timestep
-const FPS     = 60;            // Screen Framerate
-const GRAVITY = -9.82;         // Gravity
-const DENSITY = 2000.0;        // ball density
-
-console.log(DT, INV_DT, 1000/INV_DT)
+const DT      = 1/100;   // Physics engine timestep (s)
+const INV_DT  = 1/DT;    // Physics engine inverse timestep (1/s)
+const FPS     = 60;      // Screen frames per second
+const GRAVITY = -9.82;   // Gravity (m/s^2)
+const DENSITY = 7850.0;  // Steel ball density (kg/m^3)
 
 //	classes
 class Vector2 {
@@ -62,23 +60,26 @@ class Vector2 {
 class Particle {
     constructor() {
       this.pos = new Vector2();
+	  this.prevPos = new Vector2();
 	  this.startPos = new Vector2();
       this.vel = new Vector2();
-      this.imp = new Vector2();
       this.radius = new Number();
       this.invMass = new Number();
     }
 	computeInverseMass(mass) {
         this.invMass = mass > 0.0 ? 1.0 / mass : 0.0;
     }
-	computeNewState(){
+	computeNewPosition(){
 		if( this.invMass > 0.0 ){
-			this.vel = this.vel.add(this.imp);
+			this.vel = this.vel.add(new Vector2(0.0, DT*GRAVITY));
+			this.prevPos = thos.pos;
 			this.pos = this.pos.add(this.vel.mul(DT));
-			//this.vel = this.vel.add(new Vector2(0.0, DT*GRAVITY));
 		}
-		//this.imp = new Vector2();
-		this.imp = new Vector2(0.0, DT*GRAVITY);
+	}
+	computeNewVelocity(){
+		if( this.invMass > 0.0 ){
+			this.vel = (this.pos.sub(this.prevPos)).mul(INV_DT);
+		}
 	}
 }
 
@@ -121,7 +122,7 @@ var ctx = null;
 
 var camera = {
 	pos : {x : 0, y : 0},
-	zoom : 200
+	zoom : 400
 };
 
 var particles = [];
@@ -229,7 +230,7 @@ function updateScreen(){
 		// Wire
 		ctx.beginPath();
 		ctx.arc(pSpring.particleA.pos.x, pSpring.particleA.pos.y, pSpring.restDistance, 0, Math.PI * 2);
-        ctx.lineWidth = 0.02;
+        ctx.lineWidth = 0.01;
         ctx.strokeStyle = "#00FF00";
         ctx.stroke();
 	}
@@ -245,7 +246,7 @@ function updateScreen(){
 		// Start position
 		ctx.beginPath();
 		ctx.arc(p.startPos.x, p.startPos.y, p.radius, 0, Math.PI * 2);
-		ctx.lineWidth = 0.02;
+		ctx.lineWidth = 0.01;
         ctx.strokeStyle = "#FFFFFF";
         ctx.stroke();
 

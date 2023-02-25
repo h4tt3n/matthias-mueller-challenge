@@ -1,6 +1,6 @@
 //*******************************************************************************
 //
-//  Stable and rigid damped springs using sequential impulses and warmstart
+//  Stable, rigid constraints using sequential impulses and warmstart
 //
 //  Version 0.51, September 2018, Michael "h4tt3n" Nissen
 //  Converted to JavaScript spring 2022
@@ -8,12 +8,12 @@
 //******************************************************************************* 
 
 //   Global constants
-const DT       = 1.0 / 100.0;  // Physics engine timestep
-const INV_DT   = 1.0 / DT;     // Physics engine inverse timestep
-const ITER     = 25;           // Physics engine impulse iterations
-const FPS      = 60;           // Screen framerate
-const GRAVITY  = -10.0;        // GRAVITY
-const DENSITY  = 2000;         // ball density
+const DT      = 1/100;   // Physics engine timestep (s)
+const INV_DT  = 1/DT;    // Physics engine inverse timestep (1/s)
+const ITER    = 20;      // Physics engine impulse iterations per loop
+const FPS     = 60;      // Screen frames per second
+const GRAVITY = -9.82;   // Graviational accelleration (m/s^2)
+const DENSITY = 7850.0;  // Steel ball density (kg/m^3)
 
 //	classes
 class Vector2 {
@@ -93,7 +93,9 @@ class Vector2 {
         return new Vector2( Math.cos(a) * r, Math.sin(a) * r ); 
     }
     randomizeSquare(b) { 
-        return new Vector2( ( Math.random() - Math.random() ) * b, ( Math.random() - Math.random() ) * b ); 
+        var x = ( Math.random() - Math.random() ) * b;
+		var y = ( Math.random() - Math.random() ) * b;
+		return new Vector2( x, y ); 
     }
     rotate(v) { 
         if (v instanceof Vector2){
@@ -298,7 +300,7 @@ function demo1(){
 		var p = new Particle();
 		var mass = i == 0 ? 100.0 : 1.0 ;
 		p.inverseMass = i > num_Particles-2 ? 0.0 : 1.0 / mass;
-		p.radius = Math.pow((3*mass)/(4*Math.PI*DENSITY), (1/3));//Math.pow((( mass / DENSITY ) / (4/3) * Math.PI), 1/3); // TODO: Check this equation
+		p.radius = Math.pow((3*mass)/(4*Math.PI*DENSITY), (1/3));
 		var center = new Vector2( window.innerWidth/2, window.innerHeight/5 );
 		var position = new Vector2( Math.cos(Angle), Math.sin(Angle) ).mul(SpringLength);
 		p.position = center.add(position);
@@ -402,8 +404,8 @@ function updateScreen(){
 	ctx.transform(camera.zoom, 0, 0, -camera.zoom, x, y);
 
 	// Springs
-	ctx.lineWidth = 0.08;
-	ctx.strokeStyle = "#404040";
+	ctx.lineWidth = 0.06;
+	ctx.strokeStyle = "#444444";
 	ctx.lineJoin = "round";
 
 	for(var i = 0; i < spring.length; i++){

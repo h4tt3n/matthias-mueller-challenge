@@ -316,7 +316,7 @@ class AnalyticBead {
 			return;
 
 		var sdt = physicsScene.dt / physicsScene.numSteps;
-        var force, analyticForce;
+        var force, impulseForce, analyticForce;
 
 		for (var step = 0; step < physicsScene.numSteps; step++) {
 
@@ -324,9 +324,10 @@ class AnalyticBead {
 			physicsScene.impulseBead.startStep(sdt, physicsScene.gravity);
 
 			var lambda = physicsScene.bead.keepOnWire(physicsScene.wireCenter, physicsScene.wireRadius);
-			physicsScene.impulseBead.keepOnWire(sdt, physicsScene.wireCenter, physicsScene.wireRadius);
+			var impulseLambda = physicsScene.impulseBead.keepOnWire(sdt, physicsScene.wireCenter, physicsScene.wireRadius);
             
-            force = Math.abs(lambda / sdt / sdt);                    
+            force = Math.abs(lambda / sdt / sdt);       
+			impulseForce = Math.abs(impulseLambda / sdt / sdt);                  
 
 			physicsScene.bead.endStep(sdt);
 
@@ -334,7 +335,7 @@ class AnalyticBead {
 		}
 
 		document.getElementById("force").innerHTML = force.toFixed(3);
-		//document.getElementById("impulse").innerHTML = force.toFixed(3);	
+		document.getElementById("impulse").innerHTML = impulseForce.toFixed(3);	
 		document.getElementById("aforce").innerHTML = analyticForce.toFixed(3);	        
 	}
 

@@ -3,7 +3,7 @@
 //  Stable and rigid damped springs using sequential impulses
 //
 //  Wrecking ball
-//  Chain particles all have mass = 1, ball mass = 1000.
+//  Chain particles all have mass = 1, ball mass = 100.
 //  No visible stretching
 //
 //  Version 0.51, September 2018, Michael "h4tt3n" Nissen
@@ -12,12 +12,12 @@
 //******************************************************************************* 
 
 //   Global constants
-const DT      = 1.0 / 100.0;   // Physics engine timestep
-const INV_DT  = 1.0 / DT;      // Physics engine inverse timestep
-const ITER    = 25;            // Physics engine impulse iterations
-const FPS     = 60;            // Screen Framerate
-const GRAVITY = -10.0;         // Gravity
-const DENSITY = 2000.0;        // ball density
+const DT      = 1/100;   // Physics engine timestep (s)
+const INV_DT  = 1/DT;    // Physics engine inverse timestep (1/s)
+const ITER    = 20;      // Physics engine impulse iterations
+const FPS     = 60;      // Screen frames per second
+const GRAVITY = -9.82;   // Gravity (m/s^2)
+const DENSITY = 7850.0;  // Steel ball density (kg/m^3)
 
 //	classes
 class Vector2 {
@@ -85,7 +85,7 @@ class Particle {
 class Spring {
     constructor(){
 		this.cStiffness = 1.0;
-		this.cDamping = 0.5;
+		this.cDamping = 1.0;
         this.unit = new Vector2();
         this.reducedMass = new Number();
         this.restDistance = new Number();
@@ -145,7 +145,7 @@ function demo1(){
 	// create particles
 	for(var i = 0; i < num_Particles; i++){
 		var p = new Particle();
-		var mass = i == num_Particles-1 ? 100.0 : 1.0; //1.0 + Math.random() * 100.0;
+		var mass = i == num_Particles-1 ? 100.0 : 1.0;
 		p.invMass = i == 0 ? 0.0 : 1.0 / mass;
 		p.radius = Math.pow((3*mass)/(4*Math.PI*DENSITY), (1/3));
 		
@@ -219,7 +219,7 @@ function updateScreen(){
 	ctx.transform(camera.zoom, 0, 0, -camera.zoom, x, y);
 
 	// Springs
-	ctx.lineWidth = 0.08;
+	ctx.lineWidth = 0.04;
 	ctx.strokeStyle = "#404040";
 	ctx.lineJoin = "round";
 

@@ -10,13 +10,11 @@
 //******************************************************************************* 
 
 //   Global constants
-const DT      = 1/100;   // Physics engine timestep
-const INV_DT  = 1/DT;      // Physics engine inverse timestep
-const FPS     = 60;            // Screen Framerate
-const GRAVITY = -9.82;         // Gravity
-const DENSITY = 2000.0;        // ball density
-
-console.log(DT, INV_DT, 1000/INV_DT)
+const DT      = 1/100;   // Physics engine timestep (s)
+const INV_DT  = 1/DT;    // Physics engine inverse timestep (1/s)
+const FPS     = 60;      // Screen frames per second
+const GRAVITY = -9.82;   // Gravity (m/s^2)
+const DENSITY = 7850.0;  // Steel ball density (kg/m^3)
 
 //	classes
 class Vector2 {
@@ -121,7 +119,7 @@ var ctx = null;
 
 var camera = {
 	pos : {x : 0, y : 0},
-	zoom : 200
+	zoom : 400
 };
 
 var particles = [];
@@ -229,7 +227,7 @@ function updateScreen(){
 		// Wire
 		ctx.beginPath();
 		ctx.arc(pSpring.particleA.pos.x, pSpring.particleA.pos.y, pSpring.restDistance, 0, Math.PI * 2);
-        ctx.lineWidth = 0.02;
+        ctx.lineWidth = 0.01;
         ctx.strokeStyle = "#00FF00";
         ctx.stroke();
 	}
@@ -245,7 +243,7 @@ function updateScreen(){
 		// Start position
 		ctx.beginPath();
 		ctx.arc(p.startPos.x, p.startPos.y, p.radius, 0, Math.PI * 2);
-		ctx.lineWidth = 0.02;
+		ctx.lineWidth = 0.01;
         ctx.strokeStyle = "#FFFFFF";
         ctx.stroke();
 
