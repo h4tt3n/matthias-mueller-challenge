@@ -72,7 +72,7 @@ class Particle {
 	computeNewPosition(){
 		if( this.invMass > 0.0 ){
 			this.vel = this.vel.add(new Vector2(0.0, DT*GRAVITY));
-			this.prevPos = thos.pos;
+			this.prevPos = this.pos;
 			this.pos = this.pos.add(this.vel.mul(DT));
 		}
 	}
@@ -85,34 +85,37 @@ class Particle {
 
 class Spring {
     constructor(){
-		this.cStiffness = 1.0;
-		this.cDamping = 1.0;
+		this.cStiffness = 0.2;
+		this.cDamping = 0.1;
         this.unit = new Vector2();
         this.reducedMass = new Number();
         this.restDistance = new Number();
-        this.restImpulse = new Number();
+        //this.restImpulse = new Number();
         this.particleA = null;
         this.particleB = null;
     }
     computeCorrectiveImpulse(){
+		var distance = this.particleB.pos.sub(this.particleA.pos);
+		this.unit = distance.unit();
+		var distance_error = this.unit.dot( distance ) - this.restDistance;
+		//this.restImpulse = -distance_error;
 		// calculate delta, error, and corrective imp
-        var delta_impulse = this.particleB.imp.sub(this.particleA.imp);
-        var impulse_error = this.unit.dot(delta_impulse) - this.restImpulse;
-        var corrective_impulse = this.unit.mul(-impulse_error * this.reducedMass);
+        // var impulse_error = this.unit.dot(distance) - this.restImpulse;
+        var corrective_impulse = this.unit.mul(-distance_error * this.reducedMass);
 		// apply impulses
-        this.particleA.imp = this.particleA.imp.sub(corrective_impulse.mul(this.particleA.invMass));
-        this.particleB.imp = this.particleB.imp.add(corrective_impulse.mul(this.particleB.invMass));
+        this.particleA.pos = this.particleA.pos.sub(corrective_impulse.mul(this.particleA.invMass));
+        this.particleB.pos = this.particleB.pos.add(corrective_impulse.mul(this.particleB.invMass));
     }
 	computeReusableData(){
 		//
-		var distance = this.particleB.pos.sub(this.particleA.pos);
-		var vel = this.particleB.vel.sub(this.particleA.vel);
-		this.unit = distance.unit();
+		
+		//var vel = this.particleB.vel.sub(this.particleA.vel);
+		
 		// error
-		var distance_error = this.unit.dot( distance ) - this.restDistance;
-		var velocity_error = this.unit.dot( vel );
+		
+		//var velocity_error = this.unit.dot( vel );
 		// 
-		this.restImpulse = -this.cStiffness * distance_error * INV_DT - this.cDamping * velocity_error;
+		 //-this.cStiffness * distance_error; //- this.cDamping * velocity_error * DT;
 	}
 }
 
@@ -152,6 +155,7 @@ function demo1(){
 		p.radius = Math.pow((3*mass)/(4*Math.PI*DENSITY), (1/3));
 		var pos = new Vector2(i*Math.cos(ballAngle)*SpringLength, i*Math.sin(ballAngle)*SpringLength);
 		p.pos = center.add(pos);
+		p.prevPos = p.pos;
 		p.startPos = p.pos;
 
 		camera.pos.x = center.x;
@@ -200,8 +204,8 @@ function initiateSimulation(){
 	demo1();
 
 	setInterval(function(){ requestAnimationFrame(updateScreen); }, 1000/FPS);
-	setInterval(runSimulation, 10);
-	//setInterval(runSimulation, 0);
+	//setInterval(runSimulation, 1000);
+	setInterval(runSimulation, 1000/INV_DT);
 	//runSimulation();
 	// updateScreen();
 }
@@ -260,9 +264,10 @@ function updateScreen(){
 
 function runSimulation(){
 	
+	computeNewPosition();
 	computeReusableData();
 	applyCorrectiveLinearImpulse();
-	computeNewState();
+	computeNewVelocity();
 }
 
 function applyCorrectiveLinearImpulse(){
@@ -277,8 +282,14 @@ function computeReusableData(){
 	}
 }
 
-function computeNewState(){
+function computeNewPosition(){
 	for(var i = 0; i < particles.length; i++){
-		particles[i].computeNewState();
+		particles[i].computeNewPosition();
+	}
+}
+
+function computeNewVelocity(){
+	for(var i = 0; i < particles.length; i++){
+		particles[i].computeNewVelocity();
 	}
 }
