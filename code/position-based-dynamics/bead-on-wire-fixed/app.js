@@ -62,7 +62,6 @@ class Particle {
       this.pos = new Vector2();
 	  this.startPos = new Vector2();
       this.vel = new Vector2();
-      this.imp = new Vector2();
       this.radius = new Number();
       this.invMass = new Number();
     }
@@ -71,46 +70,58 @@ class Particle {
     }
 	computeNewState(){
 		if( this.invMass > 0.0 ){
-			//this.vel = this.vel.mul(1.0000022);
-			this.vel = this.vel.add(this.imp);
+			this.vel = this.vel.add(new Vector2(0.0, DT*GRAVITY));
 			this.pos = this.pos.add(this.vel.mul(DT));
-			//this.vel = this.vel.add(new Vector2(0.0, DT*GRAVITY));
+			
 		}
-		//this.imp = new Vector2();
-		this.imp = new Vector2(0.0, DT*GRAVITY);
 	}
 }
 
 class Spring {
     constructor(){
 		this.cStiffness = 1.0;
-		this.cDamping = 1.0;
+		this.cDamping = 2.0; // -1.0 conserves energy.
         this.unit = new Vector2();
         this.reducedMass = new Number();
         this.restDistance = new Number();
         this.restImpulse = new Number();
+		this.restVelocity = new Number();
         this.particleA = null;
         this.particleB = null;
     }
     computeCorrectiveImpulse(){
 		// calculate delta, error, and corrective imp
-        var delta_impulse = this.particleB.imp.sub(this.particleA.imp);
-        var impulse_error = this.unit.dot(delta_impulse) - this.restImpulse;
-        var corrective_impulse = this.unit.mul(-impulse_error * this.reducedMass);
+		//var delta_impulse = this.particleB.vel.sub(this.particleA.vel);
+        
+		//var impulse_error = this.unit.dot(delta_impulse) - this.restImpulse;
+        
+		//var corrective_impulse = this.unit.mul(-impulse_error * this.reducedMass);
+		var corrective_impulse = this.unit.mul(this.restImpulse * this.reducedMass * DT);
+		var corrective_velocity = this.unit.mul(this.restVelocity * this.reducedMass);
+		//var corrective_velocity = this.unit.mul(-this.unit.dot(delta_impulse) * this.reducedMass);
+		
+		
 		// apply impulses
-        this.particleA.imp = this.particleA.imp.sub(corrective_impulse.mul(this.particleA.invMass));
-        this.particleB.imp = this.particleB.imp.add(corrective_impulse.mul(this.particleB.invMass));
+		// this.particleA.vel = this.particleA.vel.sub(corrective_impulse.mul(this.particleA.invMass));
+        // this.particleB.vel = this.particleB.vel.add(corrective_impulse.mul(this.particleB.invMass));
+
+		this.particleA.pos = this.particleA.pos.sub(corrective_impulse.mul(this.particleA.invMass));
+        this.particleB.pos = this.particleB.pos.add(corrective_impulse.mul(this.particleB.invMass));
+
+		this.particleA.vel = this.particleA.vel.sub(corrective_velocity.mul(this.particleA.invMass));
+        this.particleB.vel = this.particleB.vel.add(corrective_velocity.mul(this.particleB.invMass));
     }
 	computeReusableData(){
 		//
 		var distance = this.particleB.pos.sub(this.particleA.pos);
-		var vel = this.particleB.vel.sub(this.particleA.vel);
+		var velocity = this.particleB.vel.sub(this.particleA.vel);
 		this.unit = distance.unit();
 		// error
 		var distance_error = this.unit.dot( distance ) - this.restDistance;
-		var velocity_error = this.unit.dot( vel );
+		var velocity_error = this.unit.dot( velocity );
 		// 
-		this.restImpulse = -this.cStiffness * distance_error * INV_DT - this.cDamping * velocity_error;
+		this.restImpulse = -this.cStiffness * distance_error * INV_DT; // - this.cDamping * velocity_error;
+		this.restVelocity = -this.cDamping * velocity_error;
 	}
 }
 
@@ -169,9 +180,12 @@ function demo1(){
 		s.reducedMass = invMass > 0.0 ? 1.0 / invMass : 0.0;
 		constraints.push(s);
 	}
-	
+
 	// Randomize pos - stability test
-	// var displacement = 100;
+	var displacement = 100;
+
+	//particles[1].pos = particles[1].pos.add(new Vector2(0.1, 0.1));
+	//particles[1].pos = particles[1].pos.add(new Vector2((Math.random() - Math.random()) * displacement, (Math.random() - Math.random()) * displacement));
 
 	// for(var i = 1; i < num_Particles; i++){
 	// 	var p = particles[i];
@@ -198,7 +212,7 @@ function initiateSimulation(){
 	demo1();
 
 	setInterval(function(){ requestAnimationFrame(updateScreen); }, 1000/FPS);
-	setInterval(runSimulation, 10);
+	setInterval(runSimulation, 1000/INV_DT);
 	//setInterval(runSimulation, 0);
 	//runSimulation();
 	// updateScreen();
