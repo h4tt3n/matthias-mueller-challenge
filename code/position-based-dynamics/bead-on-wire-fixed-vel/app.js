@@ -1,11 +1,10 @@
 //*******************************************************************************
 //
-//  Stable and rigid springs using sequential impulses
+//  Position Based Dynamics (PBD) - velocity version
 //  
 //  Bead-on-a-wire using single spring
 //
 //  
-//
 //  
 //******************************************************************************* 
 
@@ -65,14 +64,17 @@ class Particle {
       this.radius = new Number();
       this.invMass = new Number();
     }
+	addGravity() {
+		if( this.invMass > 0.0 ){
+			this.vel = this.vel.add(new Vector2(0.0, DT*GRAVITY));
+		}
+	}
 	computeInverseMass(mass) {
         this.invMass = mass > 0.0 ? 1.0 / mass : 0.0;
     }
 	computeNewState(){
 		if( this.invMass > 0.0 ){
-			this.vel = this.vel.add(new Vector2(0.0, DT*GRAVITY));
-			this.pos = this.pos.add(this.vel.mul(DT));
-			
+			this.pos = this.pos.add(this.vel.mul(DT));	
 		}
 	}
 }
@@ -80,48 +82,47 @@ class Particle {
 class Spring {
     constructor(){
 		this.cStiffness = 1.0;
-		this.cDamping = 2.0; // -1.0 conserves energy.
+		//this.cDamping = 0.0; // -1.0 conserves energy.
         this.unit = new Vector2();
         this.reducedMass = new Number();
         this.restDistance = new Number();
-        this.restImpulse = new Number();
-		this.restVelocity = new Number();
+        this.restVelocity = new Number();
+		//this.restVelocity = new Number();
         this.particleA = null;
         this.particleB = null;
     }
-    computeCorrectiveImpulse(){
+    applyCorrectiveVelocity(){
 		// calculate delta, error, and corrective imp
-		//var delta_impulse = this.particleB.vel.sub(this.particleA.vel);
+		var delta_velocity = this.particleB.vel.sub(this.particleA.vel);
         
-		//var impulse_error = this.unit.dot(delta_impulse) - this.restImpulse;
+		var velocity_error = this.unit.dot(delta_velocity) - this.restVelocity;
         
-		//var corrective_impulse = this.unit.mul(-impulse_error * this.reducedMass);
-		var corrective_impulse = this.unit.mul(this.restImpulse * this.reducedMass * DT);
-		var corrective_velocity = this.unit.mul(this.restVelocity * this.reducedMass);
-		//var corrective_velocity = this.unit.mul(-this.unit.dot(delta_impulse) * this.reducedMass);
+		//var corrective_velocity = this.unit.mul(-velocity_error * this.reducedMass);
+		var corrective_velocity = this.unit.mul(-velocity_error * this.reducedMass);
+		//var corrective_velocity = this.unit.mul(this.restVelocity * this.reducedMass);
+		//var corrective_velocity = this.unit.mul(-this.unit.dot(delta_velocity) * this.reducedMass);
 		
 		
 		// apply impulses
-		// this.particleA.vel = this.particleA.vel.sub(corrective_impulse.mul(this.particleA.invMass));
-        // this.particleB.vel = this.particleB.vel.add(corrective_impulse.mul(this.particleB.invMass));
-
-		this.particleA.pos = this.particleA.pos.sub(corrective_impulse.mul(this.particleA.invMass));
-        this.particleB.pos = this.particleB.pos.add(corrective_impulse.mul(this.particleB.invMass));
-
 		this.particleA.vel = this.particleA.vel.sub(corrective_velocity.mul(this.particleA.invMass));
         this.particleB.vel = this.particleB.vel.add(corrective_velocity.mul(this.particleB.invMass));
+
+		// this.particleA.pos = this.particleA.pos.sub(corrective_velocity.mul(this.particleA.invMass));
+        // this.particleB.pos = this.particleB.pos.add(corrective_velocity.mul(this.particleB.invMass));
+
+		//this.particleA.vel = this.particleA.vel.sub(corrective_velocity.mul(this.particleA.invMass));
+        //this.particleB.vel = this.particleB.vel.add(corrective_velocity.mul(this.particleB.invMass));
     }
-	computeReusableData(){
+	computeRestVelocity(){
 		//
 		var distance = this.particleB.pos.sub(this.particleA.pos);
-		var velocity = this.particleB.vel.sub(this.particleA.vel);
+		//var velocity = this.particleB.vel.sub(this.particleA.vel);
 		this.unit = distance.unit();
 		// error
 		var distance_error = this.unit.dot( distance ) - this.restDistance;
-		var velocity_error = this.unit.dot( velocity );
+		//var velocity_error = this.unit.dot( velocity );
 		// 
-		this.restImpulse = -this.cStiffness * distance_error * INV_DT; // - this.cDamping * velocity_error;
-		this.restVelocity = -this.cDamping * velocity_error;
+		this.restVelocity = -this.cStiffness * distance_error * INV_DT; // + this.cDamping * velocity_error;
 	}
 }
 
@@ -182,7 +183,7 @@ function demo1(){
 	}
 
 	// Randomize pos - stability test
-	var displacement = 100;
+	//var displacement = 100;
 
 	//particles[1].pos = particles[1].pos.add(new Vector2(0.1, 0.1));
 	//particles[1].pos = particles[1].pos.add(new Vector2((Math.random() - Math.random()) * displacement, (Math.random() - Math.random()) * displacement));
@@ -271,21 +272,27 @@ function updateScreen(){
 }
 
 function runSimulation(){
-	
-	computeReusableData();
-	applyCorrectiveLinearImpulse();
+	addGravity();
+	computeRestVelocity();
+	applyCorrectiveVelocity();
 	computeNewState();
 }
 
-function applyCorrectiveLinearImpulse(){
-	for(var i = 0; i < constraints.length; i++){
-		constraints[i].computeCorrectiveImpulse();
+function addGravity(){
+	for(var i = 0; i < particles.length; i++){
+		particles[i].addGravity();
 	}
 }
 
-function computeReusableData(){
+function applyCorrectiveVelocity(){
 	for(var i = 0; i < constraints.length; i++){
-		constraints[i].computeReusableData();
+		constraints[i].applyCorrectiveVelocity();
+	}
+}
+
+function computeRestVelocity(){
+	for(var i = 0; i < constraints.length; i++){
+		constraints[i].computeRestVelocity();
 	}
 }
 

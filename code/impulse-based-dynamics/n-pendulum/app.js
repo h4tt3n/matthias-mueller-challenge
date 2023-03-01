@@ -14,7 +14,7 @@
 //   Global constants
 const DT      = 1/100;   // Physics engine timestep (s)
 const INV_DT  = 1/DT;    // Physics engine inverse timestep (1/s)
-const ITER    = 20;      // Physics engine impulse iterations
+const ITERS   = 20;      // Physics engine impulse iterations
 const FPS     = 60;      // Screen frames per second
 const GRAVITY = -9.82;   // Gravity (m/s^2)
 const DENSITY = 7850.0;  // Steel ball density (kg/m^3)
@@ -198,8 +198,8 @@ function initiateSimulation(){
 	demo1();
 
 	setInterval(requestScreenUpdate, 1000/FPS);
-	setInterval(runSimulation, 1000/INV_DT);
-	// setInterval(runSimulation, 0);
+	//setInterval(runSimulation, 1000/INV_DT);
+	setInterval(runSimulation, 0);
 	// updateScreen();
 }
 
@@ -246,7 +246,7 @@ function updateScreen(){
 function runSimulation(){
 	
 	computeReusableData();
-	for(var i = 0; i < ITER; i++){
+	for(var i = 0; i < ITERS; i++){
 		applyCorrectiveLinearImpulse();
 	}
 	computeNewState();
