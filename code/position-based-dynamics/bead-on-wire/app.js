@@ -97,12 +97,13 @@ class Spring {
     computeCorrectiveImpulse(){
 		var distance = this.particleB.pos.sub(this.particleA.pos);
 		this.unit = distance.unit();
-		var distance_error = this.unit.dot( distance ) - this.restDistance;
+		var distance_error = this.unit.dot(distance) - this.restDistance;
 		//this.restImpulse = -distance_error;
 		// calculate delta, error, and corrective imp
         // var impulse_error = this.unit.dot(distance) - this.restImpulse;
         var corrective_impulse = this.unit.mul(-distance_error * this.reducedMass);
 		// apply impulses
+		
         this.particleA.pos = this.particleA.pos.sub(corrective_impulse.mul(this.particleA.invMass));
         this.particleB.pos = this.particleB.pos.add(corrective_impulse.mul(this.particleB.invMass));
     }
