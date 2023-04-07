@@ -376,7 +376,6 @@ function initiateSimulation(){
 	canvas = document.querySelector("#gameCanvas");
 	canvas.width = window.innerWidth - 20;
 	canvas.height = window.innerHeight - 20;
-	ctx = canvas.getContext("2d");
 
 	// context
 	ctx = canvas.getContext("2d");
